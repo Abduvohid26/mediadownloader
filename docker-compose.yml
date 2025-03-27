@@ -1,0 +1,37 @@
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    restart: always
+    command:  uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+    expose:
+      - 8000
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+    env_file:
+      - .env.prod
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://abduvohid:20042629ab@db:5432/my_database
+    volumes:
+      - static_volume:/media_service/static  
+      - media_volume:/media_service/media   
+
+  db:
+    image: postgres:15
+    restart: always
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_USER: abduvohid
+      POSTGRES_PASSWORD: 20042629ab
+      POSTGRES_DB: my_database
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+  static_volume: 
+  media_volume:   
