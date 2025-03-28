@@ -31,7 +31,7 @@ from playwright.async_api import async_playwright, TimeoutError
 async def get_instagram_story_urls(username):
     async with async_playwright() as p:
         try:
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
 
             try:
@@ -48,17 +48,20 @@ async def get_instagram_story_urls(username):
                 await page.fill(".form__input", username)
                 await page.click(".form__submit")
             except TimeoutError:
+                print("2")
                 return {"error": True, "message": "Invalid response from the server"}
 
             try:
                 await page.wait_for_selector(".button__download", timeout=1000)
             except TimeoutError:
+                print("3")
                 return {"error": True, "message": "Invalid response from the server"}
 
             story_links = await page.locator(".button__download").all()
             thumbnail_links = await page.locator(".media-content__image").all()
 
             if not story_links:
+                print("4")
                 return {"error": True, "message": "Invalid response from the server"}
 
             stories = set()
@@ -69,9 +72,11 @@ async def get_instagram_story_urls(username):
                     if story_url:
                         stories.add((story_url, thumbnail_url))
                 except TimeoutError:
+                    print("5")
                     return {"error": True, "message": "Invalid response from the server"}
-
+            await browser.close()
             if not stories:
+                print("6")
                 return {"error": True, "message": "Invalid response from the server"}
 
             return {
@@ -82,11 +87,12 @@ async def get_instagram_story_urls(username):
                 "medias": [{"download_url": url, "thumb": thumb} for url, thumb in stories]
             }
         except TimeoutError:
+            print("7")
             return {"error": True, "message": "Invalid response from the server"}
-        except Exception:
+        except Exception as e:
+            print("8", e)
             return {"error": True, "message": "Invalid response from the server"}
-        finally:
-            await browser.close()
+
 
 # async def get_instagram_story_urls(username):
 #     async with async_playwright() as p:
@@ -473,7 +479,7 @@ async def download_instagram_media(url):
             data = await get_video_album(info)
             print(data, 'tyl')
             if data["medias"] == []:
-                data = await get_instagram_post_images(post_url=url)
+                data = await get_instagram_post_images(post_url=url, caption=data["caption"])
             else:
                 return data
         else:
@@ -483,7 +489,7 @@ async def download_instagram_media(url):
     except yt_dlp.utils.DownloadError as e:
         error_message = str(e)
         if "There is no video in this post" in error_message:
-            data = await get_instagram_post_images(post_url=url, caption=data["caption"])
+            data = await get_instagram_post_images(post_url=url, caption="")
             print(data, 'bizda')
             return data
         else:
