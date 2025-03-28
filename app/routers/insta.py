@@ -471,7 +471,8 @@ async def download_instagram_media(url, proxy_config):
     loop = asyncio.get_running_loop()
     try:
         def extract():
-            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+            with yt_dlp.YoutubeDL({'quiet': True, 'proxy': proxy_url}) as ydl:
                 return ydl.extract_info(url, download=False)
 
         info = await loop.run_in_executor(None, extract)
