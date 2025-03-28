@@ -299,7 +299,7 @@ async def get_instagram_post_images(post_url):
             page = await browser.new_page()
 
             try:
-                await page.goto(post_url, timeout=1500)  # 15 soniya ichida yuklanishi kerak
+                await page.goto(post_url, timeout=2000)  # 15 soniya ichida yuklanishi kerak
             except TimeoutError:
                 print("time out")
                 return {"error": True, "message": "Invalid response from the server"}
