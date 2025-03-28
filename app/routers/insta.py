@@ -35,7 +35,7 @@ async def get_instagram_story_urls(username, proxy_config):
             page = await browser.new_page()
 
             try:
-                await page.goto("https://sssinstagram.com/ru/story-saver", timeout=1000)
+                await page.goto("https://sssinstagram.com/ru/story-saver", timeout=2000)
             except TimeoutError:
                 print("1")
                 return {"error": True, "message": "Invalid response from the server"}
@@ -44,7 +44,7 @@ async def get_instagram_story_urls(username, proxy_config):
             uname = match.group(1) if match else username
 
             try:
-                await page.wait_for_selector(".form__input", timeout=1000)
+                await page.wait_for_selector(".form__input", timeout=2000)
                 await page.fill(".form__input", username)
                 await page.click(".form__submit")
             except TimeoutError:
@@ -391,7 +391,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
             page = await browser.new_page()
 
             try:
-                await page.goto(post_url, timeout=2000)  # 15 soniya ichida yuklanishi kerak
+                await page.goto(post_url, timeout=2500)  # 15 soniya ichida yuklanishi kerak
             except PlaywrightTimeoutError:
                 print("⏳ Time out!1")
                 return {"error": True, "message": "Invalid response from the server"}
