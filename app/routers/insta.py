@@ -24,38 +24,55 @@ import re
 
 import re
 from playwright.async_api import async_playwright
+
+import re
+from playwright.async_api import async_playwright, TimeoutError
+
 async def get_instagram_story_urls(username):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
         try:
-            await page.goto("https://sssinstagram.com/ru/story-saver")
+            browser = await p.chromium.launch(headless=False)
+            page = await browser.new_page()
+
+            try:
+                await page.goto("https://sssinstagram.com/ru/story-saver", timeout=1000)
+            except TimeoutError:
+                print("1")
+                return {"error": True, "message": "Invalid response from the server"}
+
             match = re.search(r"stories/([^/]+)/", username)
             uname = match.group(1) if match else username
 
-            await page.wait_for_selector(".form__input", timeout=10000)
-            await page.fill(".form__input", uname)
-            await page.click(".form__submit")
+            try:
+                await page.wait_for_selector(".form__input", timeout=1000)
+                await page.fill(".form__input", username)
+                await page.click(".form__submit")
+            except TimeoutError:
+                return {"error": True, "message": "Invalid response from the server"}
 
-            await page.wait_for_selector(".button__download", timeout=20000)
-            
+            try:
+                await page.wait_for_selector(".button__download", timeout=1000)
+            except TimeoutError:
+                return {"error": True, "message": "Invalid response from the server"}
+
             story_links = await page.locator(".button__download").all()
             thumbnail_links = await page.locator(".media-content__image").all()
-            
-            print(f"Found {len(story_links)} story links and {len(thumbnail_links)} thumbnails")
-            
+
             if not story_links:
-                return {"error": True, "message": "Invalid response from the server", "username": uname}
+                return {"error": True, "message": "Invalid response from the server"}
 
             stories = set()
-            num_stories = min(len(story_links), len(thumbnail_links))
-            
-            for i in range(num_stories):
-                story_url = await story_links[i].get_attribute("href")
-                thumbnail_url = await thumbnail_links[i].get_attribute("src")
-                
-                if story_url and story_url not in stories:
-                    stories.add((story_url, thumbnail_url))
+            for i in range(min(len(story_links), len(thumbnail_links))):
+                try:
+                    story_url = await story_links[i].get_attribute("href")
+                    thumbnail_url = await thumbnail_links[i].get_attribute("src")
+                    if story_url:
+                        stories.add((story_url, thumbnail_url))
+                except TimeoutError:
+                    return {"error": True, "message": "Invalid response from the server"}
+
+            if not stories:
+                return {"error": True, "message": "Invalid response from the server"}
 
             return {
                 "error": False,
@@ -64,10 +81,58 @@ async def get_instagram_story_urls(username):
                 "username": uname,
                 "medias": [{"download_url": url, "thumb": thumb} for url, thumb in stories]
             }
-        except Exception as e:
+        except TimeoutError:
+            return {"error": True, "message": "Invalid response from the server"}
+        except Exception:
             return {"error": True, "message": "Invalid response from the server"}
         finally:
             await browser.close()
+
+# async def get_instagram_story_urls(username):
+#     async with async_playwright() as p:
+#         browser = await p.chromium.launch(headless=False)
+#         page = await browser.new_page()
+#         try:
+#             await page.goto("https://sssinstagram.com/ru/story-saver")
+#             match = re.search(r"stories/([^/]+)/", username)
+#             uname = match.group(1) if match else username
+
+#             await page.wait_for_selector(".form__input", timeout=10000)
+#             await page.fill(".form__input", uname)
+#             await page.click(".form__submit")
+
+#             await page.wait_for_selector(".button__download", timeout=20000)
+            
+#             story_links = await page.locator(".button__download").all()
+#             thumbnail_links = await page.locator(".media-content__image").all()
+            
+#             print(f"Found {len(story_links)} story links and {len(thumbnail_links)} thumbnails")
+            
+#             if not story_links:
+#                 return {"error": True, "message": "Invalid response from the server", "username": uname}
+
+#             stories = set()
+#             num_stories = min(len(story_links), len(thumbnail_links))
+            
+#             for i in range(num_stories):
+#                 story_url = await story_links[i].get_attribute("href")
+#                 thumbnail_url = await thumbnail_links[i].get_attribute("src")
+                
+#                 if story_url and story_url not in stories:
+#                     stories.add((story_url, thumbnail_url))
+
+#             return {
+#                 "error": False,
+#                 "hosting": "instagram",
+#                 "type": "stories",
+#                 "username": uname,
+#                 "medias": [{"download_url": url, "thumb": thumb} for url, thumb in stories]
+#             }
+#         except Exception as e:
+#             print("Error", e)
+#             return {"error": True, "message": "Invalid response from the server"}
+#         finally:
+#             await browser.close()
 
 
 
@@ -234,10 +299,10 @@ async def get_instagram_post_images(post_url):
             page = await browser.new_page()
 
             try:
-                await page.goto(post_url, timeout=15000)  # 15 soniya ichida yuklanishi kerak
+                await page.goto(post_url, timeout=1000)  # 15 soniya ichida yuklanishi kerak
             except TimeoutError:
                 print("time out")
-                return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
+                return {"error": True, "message": "Invalid response from the server"}
 
             caption = None
             caption_element = page.locator("span._ap3a._aaco._aacu._aacx._aad7._aade")
@@ -249,10 +314,10 @@ async def get_instagram_post_images(post_url):
             shortcode = path.strip("/").split("/")[-1]
 
             try:
-                await page.wait_for_selector("article", timeout=10000)
+                await page.wait_for_selector("article", timeout=1000)
             except TimeoutError:
                 print("Time 1")
-                return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
+                return {"error": True, "message": "Invalid response from the server"}
 
             # Rasmlar to‘plami
             image_urls = set()
@@ -278,7 +343,7 @@ async def get_instagram_post_images(post_url):
 
             if not image_urls:
                 print("noy url")
-                return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
+                return {"error": True, "message": "Invalid response from the server"}
 
             return {
                 "error": False,
@@ -297,7 +362,8 @@ async def get_instagram_post_images(post_url):
             }
 
     except Exception as e:
-        return {"status": "error", "message": f"Xatolik yuz berdi: {str(e)}"}
+            print("Error:", str(e))
+            return {"error": True, "message": "Invalid response from the server"}
 
 
 

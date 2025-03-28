@@ -757,3 +757,12 @@ POST_URL = "https://www.instagram.com/p/DHlg_abtePq/?utm_source=ig_web_copy_link
 # story_urls = asyncio.run(instagram_album_downloader("https://www.instagram.com/p/HVeg3Vos_p/?utm_source=ig_web_copy_link"))
 
 # print("Yuklangan fayllar:", story_urls)
+
+
+
+from insta import get_instagram_story_urls
+
+
+import asyncio
+print(asyncio.run(get_instagram_story_urls("https://www.instagram.com/stories/shayk.hulislamova/")))
+# print(asyncio.run(get_instagram_story_urls("https://www.instagram.com/stories/sardor.salimjanov/3597788380524588838/")))
