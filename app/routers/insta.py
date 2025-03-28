@@ -368,7 +368,7 @@ from playwright.async_api import async_playwright, TimeoutError
 from urllib.parse import urlparse
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
-async def get_instagram_post_images(post_url):
+async def get_instagram_post_images(post_url, caption):
     """
     Instagram postidagi barcha rasm URLlarini olish (albumlarni ham to'liq yuklash)
     
@@ -390,10 +390,10 @@ async def get_instagram_post_images(post_url):
                 print("⏳ Time out!")
                 return {"error": True, "message": "Invalid response from the server"}
 
-            caption = None
-            caption_element = page.locator("span._ap3a._aaco._aacu._aacx._aad7._aade")
-            if await caption_element.count() > 0:
-                caption = await caption_element.text_content()
+            # caption = None
+            # caption_element = page.locator("span._ap3a._aaco._aacu._aacx._aad7._aade")
+            # if await caption_element.count() > 0:
+            #     caption = await caption_element.text_content()
 
             # Shortcode ajratish
             path = urlparse(post_url).path
@@ -473,7 +473,7 @@ async def download_instagram_media(url):
             data = await get_video_album(info)
             print(data, 'tyl')
             if data["medias"] == []:
-                data = await get_instagram_post_images(post_url=url)
+                data = await get_instagram_post_images(post_url=url, caption=data["caption"])
             else:
                 return data
         else:
