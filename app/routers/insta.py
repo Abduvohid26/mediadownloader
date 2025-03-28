@@ -19,52 +19,147 @@ import yt_dlp
 import aiohttp
 from bs4 import BeautifulSoup
 
+import re
 
 
-
+import re
+from playwright.async_api import async_playwright
 async def get_instagram_story_urls(username):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        # username = f"https://www.instagram.com/stories/{username}/"
         try:
             await page.goto("https://sssinstagram.com/ru/story-saver")
+            match = re.search(r"stories/([^/]+)/", username)
+            uname = match.group(1) if match else username
 
-            # Form input yuklanishini kutish
-            await page.wait_for_selector(".form__input")
-
-            # Username kiritish va tugmani bosish
-            await page.fill(".form__input", username)
+            await page.wait_for_selector(".form__input", timeout=10000)
+            await page.fill(".form__input", uname)
             await page.click(".form__submit")
 
-            # Natijalar chiqishini kutish
-            await page.wait_for_selector(".button__download", timeout=5000)  # 5 soniya kutish
-
-            # Hikoya va thumbnail linklarini olish
+            await page.wait_for_selector(".button__download", timeout=20000)
+            
             story_links = await page.locator(".button__download").all()
             thumbnail_links = await page.locator(".media-content__image").all()
-
+            
+            print(f"Found {len(story_links)} story links and {len(thumbnail_links)} thumbnails")
+            
             if not story_links:
-                print(f"Hikoyalar topilmadi! ({username})")
-                return []
+                return {"error": True, "message": "Invalid response from the server", "username": uname}
 
-            stories = []
-            for i, story in enumerate(story_links):
-                story_url = await story.get_attribute("href")
-                thumbnail_url = await thumbnail_links[i].get_attribute("src") if i < len(thumbnail_links) else None
-                stories.append({"donwload_link": story_url, "thumbnail_link": thumbnail_url})
+            stories = set()
+            num_stories = min(len(story_links), len(thumbnail_links))
+            
+            for i in range(num_stories):
+                story_url = await story_links[i].get_attribute("href")
+                thumbnail_url = await thumbnail_links[i].get_attribute("src")
+                
+                if story_url and story_url not in stories:
+                    stories.add((story_url, thumbnail_url))
 
             return {
-                "status": "ok",
+                "error": False,
+                "hosting": "instagram",
                 "type": "stories",
-                "username": username.split("/")[-2],
-                "stories": stories
+                "username": uname,
+                "medias": [{"download_url": url, "thumb": thumb} for url, thumb in stories]
             }
+        except Exception as e:
+            return {"error": True, "message": "Invalid response from the server"}
         finally:
             await browser.close()
 
 
 
+
+# async def get_instagram_story_urls(username):
+#     async with async_playwright() as p:
+#         try:
+#             browser = await p.chromium.launch(
+#                 headless=True,
+#                 args=[
+#                     '--no-sandbox',
+#                     '--disable-setuid-sandbox',
+#                     '--disable-dev-shm-usage'
+#                 ]
+#             )
+#             context = await browser.new_context()
+#             page = await context.new_page()
+            
+#             page.set_default_timeout(10000)
+            
+#             try:
+#                 await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="domcontentloaded")
+                
+#                 try:
+#                     await page.wait_for_selector(".form__input", timeout=10000)
+                    
+#                     await page.fill(".form__input", username)
+#                     await page.click(".form__submit")
+                    
+#                     try:
+#                         await page.wait_for_selector(".button__download", timeout=10000)
+                        
+#                         story_links = await page.locator(".button__download").all()
+#                         thumbnail_links = await page.locator(".media-content__image").all()
+                        
+#                         if not story_links:
+#                             print(f"Hikoyalar topilmadi! ({username})")
+#                             return {
+#                                 "error": True,
+#                                 "message": "Invalid response from the server"
+#                             }
+                        
+#                         stories = []
+#                         for i, story in enumerate(story_links):
+#                             try:
+#                                 story_url = await story.get_attribute("href")
+#                                 thumbnail_url = await thumbnail_links[i].get_attribute("src") if i < len(thumbnail_links) else None
+#                                 stories.append({
+#                                     "download_link": story_url,  # Typo fix: donwload_link -> download_link
+#                                     "thumbnail_link": thumbnail_url
+#                                 })
+#                             except Exception as e:
+#                                 print(f"Element atributlarini olishda xato: {str(e)}")
+#                                 continue
+                        
+#                         return {
+#                             "status": "ok",
+#                             "type": "stories",
+#                             "username": username,
+#                             "stories": stories
+#                         }
+                        
+#                     except Exception as e:
+#                         print(f"Natijalarni kutishda xato: {str(e)}")
+#                         return {
+#                                 "error": True,
+#                                 "message": "Invalid response from the server"
+#                             }
+                        
+#                 except Exception as e:
+#                     print(f"Formani to'ldirishda xato: {str(e)}")
+#                     return {
+#                             "error": True,
+#                             "message": "Invalid response from the server"
+#                             }
+                    
+#             except Exception as e:
+#                 print(f"Sahifaga kirishda xato: {str(e)}")
+#                 return {
+#                         "error": True,
+#                         "message": "Invalid response from the server"
+#                         }
+                
+#         except Exception as e:
+#             print(f"Brauzerni ishga tushirishda xato: {str(e)}")
+#             return {
+#                     "error": True,
+#                     "message": "Invalid response from the server"
+#                     }
+            
+#         finally:
+#             await browser.close()
 
 
 
@@ -91,20 +186,13 @@ async def get_instagram_story_urls(username):
 
 async def get_video(info):
     data = {
-            "status": "ok",
+            "error": False,
+            "hosting": "instagram",
             "type": "video",
             "shortcode": info["id"],
             "caption": info.get("description", ""),
             "thumbnail": info["thumbnails"][-1]["url"] if "thumbnails" in info else None,
-            "download_link": info["formats"][1]["url"] if "formats" in info else None,
-            "like_count": info.get("like_count", 0),
-            "comment_count": info.get("comment_count", 0),
-            "duration": info.get("duration", 0),
-            "author": {
-                "id": info.get("uploader_id", ""),
-                "username": info.get("channel", ""),
-                "full_name": info.get("uploader", ""),
-            }
+            "download_url": info["formats"][1]["url"] if "formats" in info else None,
         }
     return data
 
@@ -142,12 +230,13 @@ async def get_instagram_post_images(post_url):
     """
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
 
             try:
                 await page.goto(post_url, timeout=15000)  # 15 soniya ichida yuklanishi kerak
             except TimeoutError:
+                print("time out")
                 return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
 
             caption = None
@@ -162,6 +251,7 @@ async def get_instagram_post_images(post_url):
             try:
                 await page.wait_for_selector("article", timeout=10000)
             except TimeoutError:
+                print("Time 1")
                 return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
 
             # Rasmlar to‘plami
@@ -187,18 +277,20 @@ async def get_instagram_post_images(post_url):
             await browser.close()
 
             if not image_urls:
+                print("noy url")
                 return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
 
             return {
-                "status": "ok",
+                "error": False,
+                "hosting": "instagram",
                 "type": "album" if len(image_urls) > 1 else "image",
                 "shortcode": shortcode,
                 "caption": caption,
                 "medias": [
                     {
                         "type": "image",
-                        "download_link": url,
-                        "thumbnail": url
+                        "download_url": url,
+                        "thumb": url
                     }
                     for url in image_urls
                 ]
