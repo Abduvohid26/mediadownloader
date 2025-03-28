@@ -473,7 +473,7 @@ async def download_instagram_media(url):
             data = await get_video_album(info)
             print(data, 'tyl')
             if data["medias"] == []:
-                data = await get_instagram_post_images(post_url=url, caption=data["caption"])
+                data = await get_instagram_post_images(post_url=url)
             else:
                 return data
         else:
@@ -483,7 +483,7 @@ async def download_instagram_media(url):
     except yt_dlp.utils.DownloadError as e:
         error_message = str(e)
         if "There is no video in this post" in error_message:
-            data = await get_instagram_post_images(post_url=url)
+            data = await get_instagram_post_images(post_url=url, caption=data["caption"])
             print(data, 'bizda')
             return data
         else:
