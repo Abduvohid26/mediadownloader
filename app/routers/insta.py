@@ -406,7 +406,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
             shortcode = path.strip("/").split("/")[-1]
 
             try:
-                await page.wait_for_selector("article", timeout=1500)
+                await page.wait_for_selector("article", timeout=2000)
             except PlaywrightTimeoutError:
                 print("🔄 Timeout while waiting for article")
                 return {"error": True, "message": "Invalid response from the server"}
