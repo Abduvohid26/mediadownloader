@@ -28,10 +28,10 @@ from playwright.async_api import async_playwright
 import re
 from playwright.async_api import async_playwright, TimeoutError
 
-async def get_instagram_story_urls(username):
+async def get_instagram_story_urls(username, proxy_config):
     async with async_playwright() as p:
         try:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=True, proxy=proxy_config)
             page = await browser.new_page()
 
             try:
@@ -374,7 +374,7 @@ from playwright.async_api import async_playwright, TimeoutError
 from urllib.parse import urlparse
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
-async def get_instagram_post_images(post_url, caption):
+async def get_instagram_post_images(post_url, caption, proxy_config):
     """
     Instagram postidagi barcha rasm URLlarini olish (albumlarni ham to'liq yuklash)
     
@@ -387,13 +387,13 @@ async def get_instagram_post_images(post_url, caption):
     browser = None  # Browserni boshlang'ich qiymatga o‘rnatish
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=True, proxy=proxy_config)
             page = await browser.new_page()
 
             try:
                 await page.goto(post_url, timeout=2000)  # 15 soniya ichida yuklanishi kerak
             except PlaywrightTimeoutError:
-                print("⏳ Time out!")
+                print("⏳ Time out!1")
                 return {"error": True, "message": "Invalid response from the server"}
 
             # caption = None
@@ -427,7 +427,7 @@ async def get_instagram_post_images(post_url, caption):
                 next_button = page.locator("button[aria-label='Next']")
                 if await next_button.count() > 0:
                     await next_button.click()
-                    await page.wait_for_timeout(200)  # 2 soniya kutish
+                    await page.wait_for_timeout(500)  # 2 soniya kutish
                 else:
                     break
 
@@ -467,7 +467,7 @@ async def get_instagram_post_images(post_url, caption):
 import yt_dlp
 import asyncio
 
-async def download_instagram_media(url):
+async def download_instagram_media(url, proxy_config):
     loop = asyncio.get_running_loop()
     try:
         def extract():
@@ -479,7 +479,7 @@ async def download_instagram_media(url):
             data = await get_video_album(info)
             print(data, 'tyl')
             if data["medias"] == []:
-                data = await get_instagram_post_images(post_url=url, caption=data["caption"])
+                data = await get_instagram_post_images(post_url=url, caption=data["caption"], proxy_config=proxy_config)
             else:
                 return data
         else:
@@ -489,7 +489,7 @@ async def download_instagram_media(url):
     except yt_dlp.utils.DownloadError as e:
         error_message = str(e)
         if "There is no video in this post" in error_message:
-            data = await get_instagram_post_images(post_url=url, caption="")
+            data = await get_instagram_post_images(post_url=url, caption="", proxy_config=proxy_config)
             print(data, 'bizda')
             return data
         else:
