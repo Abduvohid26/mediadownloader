@@ -52,7 +52,7 @@ async def get_instagram_story_urls(username):
                 return {"error": True, "message": "Invalid response from the server"}
 
             try:
-                await page.wait_for_selector(".button__download", timeout=1000)
+                await page.wait_for_selector(".button__download", timeout=1500)
             except TimeoutError:
                 print("3")
                 return {"error": True, "message": "Invalid response from the server"}
