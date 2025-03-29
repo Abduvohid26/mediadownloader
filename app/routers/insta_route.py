@@ -6,12 +6,19 @@ from .proxy_route import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import ProxyServers
 from sqlalchemy.future import select
+from sqlalchemy.sql import func
 insta_router = APIRouter()
 
 @insta_router.post("/instagram/media")
 async def get_instagram_media(insta_data: InstaSchema = Form(...), db : AsyncSession = Depends(get_db)):
     url = insta_data.url.strip()
-    result = await db.execute(select(ProxyServers).filter(ProxyServers.instagram == True))
+    
+    result = await db.execute(
+        select(ProxyServers)
+        .filter(ProxyServers.instagram == True)
+        .order_by(func.random())  
+        .limit(1)  
+    )
     _proxy = result.scalars().first()
     proxy_config = {    
         "server": f"http://{_proxy.proxy}",
