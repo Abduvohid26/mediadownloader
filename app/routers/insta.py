@@ -80,7 +80,7 @@ async def close_browser():
         await _playwright.stop()
         _playwright = None
 
-async def browser_keepalive(proxy_config, interval=100):
+async def browser_keepalive(proxy_config, interval=1000):
     """ 🔄 Har `interval` sekundda brauzerni qayta ishga tushiradi """
     while True:
         await asyncio.sleep(interval)
@@ -689,7 +689,7 @@ async def close_browser_images():
         await _playwright_image.stop()
         _playwright_image = None
 
-async def browser_keepalive_images(proxy_config, interval=100):
+async def browser_keepalive_images(proxy_config, interval=1000):
     """ 🔄 Har `interval` sekundda brauzerni qayta ishga tushiradi """
     while True:
         await asyncio.sleep(interval)
