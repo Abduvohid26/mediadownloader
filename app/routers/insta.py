@@ -668,7 +668,7 @@ _playwright_image = None
 async def init_browser_images(proxy_config):
     """ Brauzerni, contextni va sahifani oldindan ochib qo‘yish """
     global _browser_image, _playwright_image
-    if _browser is None:
+    if _browser_image is None:
         print("🔄 Yangi brauzer ishga tushdi Images...")
         _playwright_image = await async_playwright().start()
         _browser_image = await _playwright_image.chromium.launch(
