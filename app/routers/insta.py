@@ -466,7 +466,7 @@ async def get_video(info):
             "shortcode": info["id"],
             "caption": info.get("description", ""),
             "thumbnail": info["thumbnails"][-1]["url"] if "thumbnails" in info else None,
-            "download_url": info["formats"][1]["url"] if "formats" in info else None,
+            "download_url": info["url"]
         }
     return data
 
@@ -770,7 +770,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
 
 
 
-#############################################3
+#############################################
 import yt_dlp
 import asyncio
 
