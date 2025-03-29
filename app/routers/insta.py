@@ -66,7 +66,7 @@ async def init_browser(proxy_config):
         # await _page.wait_for_load_state("domcontentloaded")
 
 
-    print("Mavjud", _browser)
+    print("Mavjud", _context)
     return _browser, _context, _page
 
 async def close_browser():
@@ -80,7 +80,7 @@ async def close_browser():
         await _playwright.stop()
         _playwright = None
 
-async def browser_keepalive(proxy_config, interval=300):
+async def browser_keepalive(proxy_config, interval=100):
     """ 🔄 Har `interval` sekundda brauzerni qayta ishga tushiradi """
     while True:
         await asyncio.sleep(interval)
@@ -587,17 +587,17 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
     Returns:
         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
     """
-    browser = None  # Browserni boshlang'ich qiymatga o‘rnatish
+    # browser = None  # Browserni boshlang'ich qiymatga o‘rnatish
     try:
         async with async_playwright() as p:
             # browser = await p.chromium.launch(headless=True, proxy=proxy_config)
             browser, context, page1 = await init_browser(proxy_config=proxy_config)
-            print(browser, 'browder images')
+            # print(browser, 'browder images')
             
-            page = await browser.new_page()
+            page = await context.new_page()
 
             try:
-                await page.goto(post_url, timeout=2000)  # 15 soniya ichida yuklanishi kerak
+                await page.goto(post_url, timeout=5000)  # 15 soniya ichida yuklanishi kerak
             except PlaywrightTimeoutError:
                 print("⏳ Time out!1")
                 return {"error": True, "message": "Invalid response from the server"}
