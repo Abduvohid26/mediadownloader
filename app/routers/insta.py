@@ -574,8 +574,96 @@ from playwright.async_api import async_playwright, TimeoutError
 #             print("Error:", str(e))
 #             return {"error": True, "message": "Invalid response from the server"}
 
+# from urllib.parse import urlparse
+# from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+
+# async def get_instagram_post_images(post_url, caption, proxy_config):
+#     """
+#     Instagram postidagi barcha rasm URLlarini olish (albumlarni ham to'liq yuklash)
+    
+#     Args:
+#         post_url (str): Instagram post linki
+        
+#     Returns:
+#         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
+#     """
+#     try:
+#         async with async_playwright() as p:
+#             browser, context, page1 = await init_browser(proxy_config=proxy_config)
+            
+#             page = await context.new_page()
+
+#             try:
+#                 await page.goto(post_url, timeout=5000)  # 15 soniya ichida yuklanishi kerak
+#             except PlaywrightTimeoutError:
+#                 print("⏳ Time out!1")
+#                 return {"error": True, "message": "Invalid response from the server"}
+
+#             # caption = None
+#             # caption_element = page.locator("span._ap3a._aaco._aacu._aacx._aad7._aade")
+#             # if await caption_element.count() > 0:
+#             #     caption = await caption_element.text_content()
+
+#             # Shortcode ajratish
+#             path = urlparse(post_url).path
+#             shortcode = path.strip("/").split("/")[-1]
+
+#             try:
+#                 await page.wait_for_selector("article", timeout=5000)
+#             except PlaywrightTimeoutError:
+#                 print("🔄 Timeout while waiting for article")
+#                 return {"error": True, "message": "Invalid response from the server"}
+
+#             # Rasmlar to‘plami
+#             image_urls = set()
+#             await page.mouse.click(10, 10)  
+#             await page.wait_for_timeout(500)
+
+#             while True:
+#                 images = await page.locator("article ._aagv img").all()
+                
+#                 for img in images:
+#                     url = await img.get_attribute("src")
+#                     if url:
+#                         image_urls.add(url)
+                
+#                 next_button = page.locator("button[aria-label='Next']")
+#                 if await next_button.count() > 0:
+#                     await next_button.click()
+#                     await page.wait_for_timeout(500)  # 2 soniya kutish
+#                 else:
+#                     break
+
+#             if not image_urls:
+#                 print("🚫 No image URLs found")
+#                 return {"error": True, "message": "Invalid response from the server"}
+
+#             return {
+#                 "error": False,
+#                 "hosting": "instagram",
+#                 "type": "album" if len(image_urls) > 1 else "image",
+#                 "shortcode": shortcode, 
+#                 "caption": caption,
+#                 "medias": [
+#                     {
+#                         "type": "image",
+#                         "download_url": url,
+#                         "thumb": url
+#                     }
+#                     for url in image_urls
+#                 ]
+#             }
+
+#     except Exception as e:
+#         print("❌ Error:", str(e))
+#         return {"error": True, "message": "Invalid response from the server"}
+
+#     finally:
+#         if browser is not None:
+#             await browser.close()  # Browserni har doim yopish
+
 from urllib.parse import urlparse
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 async def get_instagram_post_images(post_url, caption, proxy_config):
     """
@@ -587,72 +675,58 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
     Returns:
         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
     """
+    # browser = None  # Browserni oldindan e'lon qilamiz
     try:
-        async with async_playwright() as p:
-            browser, context, page1 = await init_browser(proxy_config=proxy_config)
+        browser, context, page1 = await init_browser(proxy_config=proxy_config)  # Browserni oldindan ochamiz
+        page = await context.new_page()  # Yangi sahifa ochamiz
+
+        try:
+            await page.goto(post_url, timeout=5000)
+        except PlaywrightTimeoutError:
+            print("⏳ Time out!1")
+            return {"error": True, "message": "Invalid response from the server"}
+
+        # Shortcode ajratish
+        path = urlparse(post_url).path
+        shortcode = path.strip("/").split("/")[-1]
+
+        try:
+            await page.wait_for_selector("article", timeout=5000)
+        except PlaywrightTimeoutError:
+            print("🔄 Timeout while waiting for article")
+            return {"error": True, "message": "Invalid response from the server"}
+
+        # Rasmlar to‘plami
+        image_urls = set()
+        await page.mouse.click(10, 10)  
+        await page.wait_for_timeout(500)
+
+        while True:
+            images = await page.locator("article ._aagv img").all()
+            for img in images:
+                url = await img.get_attribute("src")
+                if url:
+                    image_urls.add(url)
             
-            page = await context.new_page()
+            next_button = page.locator("button[aria-label='Next']")
+            if await next_button.count() > 0:
+                await next_button.click()
+                await page.wait_for_timeout(500)
+            else:
+                break
 
-            try:
-                await page.goto(post_url, timeout=5000)  # 15 soniya ichida yuklanishi kerak
-            except PlaywrightTimeoutError:
-                print("⏳ Time out!1")
-                return {"error": True, "message": "Invalid response from the server"}
+        if not image_urls:
+            print("🚫 No image URLs found")
+            return {"error": True, "message": "Invalid response from the server"}
 
-            # caption = None
-            # caption_element = page.locator("span._ap3a._aaco._aacu._aacx._aad7._aade")
-            # if await caption_element.count() > 0:
-            #     caption = await caption_element.text_content()
-
-            # Shortcode ajratish
-            path = urlparse(post_url).path
-            shortcode = path.strip("/").split("/")[-1]
-
-            try:
-                await page.wait_for_selector("article", timeout=5000)
-            except PlaywrightTimeoutError:
-                print("🔄 Timeout while waiting for article")
-                return {"error": True, "message": "Invalid response from the server"}
-
-            # Rasmlar to‘plami
-            image_urls = set()
-            await page.mouse.click(10, 10)  
-            await page.wait_for_timeout(500)
-
-            while True:
-                images = await page.locator("article ._aagv img").all()
-                
-                for img in images:
-                    url = await img.get_attribute("src")
-                    if url:
-                        image_urls.add(url)
-                
-                next_button = page.locator("button[aria-label='Next']")
-                if await next_button.count() > 0:
-                    await next_button.click()
-                    await page.wait_for_timeout(500)  # 2 soniya kutish
-                else:
-                    break
-
-            if not image_urls:
-                print("🚫 No image URLs found")
-                return {"error": True, "message": "Invalid response from the server"}
-
-            return {
-                "error": False,
-                "hosting": "instagram",
-                "type": "album" if len(image_urls) > 1 else "image",
-                "shortcode": shortcode, 
-                "caption": caption,
-                "medias": [
-                    {
-                        "type": "image",
-                        "download_url": url,
-                        "thumb": url
-                    }
-                    for url in image_urls
-                ]
-            }
+        return {
+            "error": False,
+            "hosting": "instagram",
+            "type": "album" if len(image_urls) > 1 else "image",
+            "shortcode": shortcode, 
+            "caption": caption,
+            "medias": [{"type": "image", "download_url": url, "thumb": url} for url in image_urls]
+        }
 
     except Exception as e:
         print("❌ Error:", str(e))
@@ -660,8 +734,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
 
     finally:
         if browser is not None:
-            await browser.close()  # Browserni har doim yopish
-
+            await browser.close()  # Browserni yopamiz
 
 
 
