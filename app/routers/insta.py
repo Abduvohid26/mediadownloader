@@ -80,7 +80,7 @@ async def get_instagram_story_urls(username, proxy_config):
         await page.wait_for_selector(".button__download", timeout=5000)
 
         story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
-
+        print(len(story_links), 'len')
         if not story_links:
             return {"error": True, "message": "Invalid response from the server"}
 
