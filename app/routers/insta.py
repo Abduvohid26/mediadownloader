@@ -80,7 +80,6 @@ async def get_instagram_story_urls(username, proxy_config):
         await page.wait_for_selector(".button__download", timeout=5000)
 
         story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
-        thumbnail_links = [await el.get_attribute("src") for el in await page.locator(".media-content__image").all()]
 
         if not story_links:
             return {"error": True, "message": "Invalid response from the server"}
@@ -90,7 +89,7 @@ async def get_instagram_story_urls(username, proxy_config):
             "hosting": "instagram",
             "type": "stories",
             "username": username,
-            "medias": [{"download_url": url, "thumb": thumb} for url, thumb in zip(story_links, thumbnail_links)]
+            "medias": [{"download_url": url, "type": "video" if url.lower().endswith(".mp4") else "image"} for url in story_links]
         }
     except Exception as e:
         return {"error": True, "message": f"Error: {e}"}
@@ -117,7 +116,6 @@ async def get_video_album(info):
         "caption": info.get("description", ""),
         "medias": [
             {
-                "type": "video",
                 "download_url": entry["url"],
                 "thumbnail": entry["thumbnail"]
             }
