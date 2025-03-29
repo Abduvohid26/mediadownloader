@@ -111,7 +111,7 @@ async def get_video(info):
 
 async def get_video_album(info):
     data = {
-        "errpr": False,
+        "error": False,
         "type": "album",
         "shortcode": info["id"],
         "caption": info.get("description", ""),
