@@ -118,8 +118,8 @@ async def get_video_album(info):
         "medias": [
             {
                 "type": "video",
-                "download_link": entry["url"],
-                "thumnail": entry["thumbnail"]
+                "download_url": entry["url"],
+                "thumbnail": entry["thumbnail"]
             }
             for entry in info["entries"]
         ]
