@@ -24,45 +24,213 @@ import re
 from playwright.async_api import async_playwright, TimeoutError
 
 
+
+_browser = None
+_playwright = None
+
+# async def init_browser(proxy_config):
+#     """ Brauzerni bir marta ochib, qayta ishlatish """
+#     global _browser, _playwright
+#     if _browser is None:  # ❌ Eski brauzer yopilmasa, yangi ochilmaydi
+#         print("🔄 Yangi brauzer ishga tushdi...")
+#         _playwright = await async_playwright().start()
+#         _browser = await _playwright.chromium.launch(
+#             headless=True,
+#             args=["--no-sandbox", "--disable-setuid-sandbox"],
+#             proxy=proxy_config
+#         )
+#         context1 = await _browser.new_context()
+#         page = context1.new_page()
+#         await page.goto("https://sssinstagram.com/ru/story-saver", timeout=2000)
+#     return _browser
+async def init_browser(proxy_config):
+    """ Brauzerni, contextni va sahifani oldindan ochib qo‘yish """
+    global _browser, _context, _page, _playwright
+    if _browser is None:
+        print("🔄 Yangi brauzer ishga tushdi...")
+        _playwright = await async_playwright().start()
+        _browser = await _playwright.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox"],
+            proxy=proxy_config
+        )
+        _context = await _browser.new_context()
+        # context2 = await _browser.new_context()
+        _page = await _context.new_page()  
+        # _page2 = await _context.new_page
+
+        await _page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000) 
+        await _page.wait_for_load_state("domcontentloaded")
+
+        # await _page.goto("https://sssinstagram.com/ru/story-saver", timeout=5000) 
+        # await _page.wait_for_load_state("domcontentloaded")
+
+
+    print("Mavjud", _browser)
+    return _browser, _context, _page
+
+async def close_browser():
+    """ Brauzerni to‘g‘ri yopish """
+    global _browser, _playwright
+    if _browser:
+        print("❌ Brauzer yopildi")
+        await _browser.close()
+        _browser = None
+    if _playwright:
+        await _playwright.stop()
+        _playwright = None
+
+async def browser_keepalive(proxy_config, interval=300):
+    """ 🔄 Har `interval` sekundda brauzerni qayta ishga tushiradi """
+    while True:
+        await asyncio.sleep(interval)
+        await close_browser()
+        await init_browser(proxy_config)
+
+
 async def get_instagram_story_urls(username, proxy_config):
-    async with async_playwright() as p:
-        try:
-            browser = await p.chromium.launch(
-                headless=True,  # Tezroq bo'lishi uchun True
-                args=["--no-sandbox", "--disable-setuid-sandbox"],  # Tez ochiladi
-                proxy=proxy_config
-            )
-            page = await browser.new_page()
+    """ Instagram storylarini olish """
+    try:
+        browser, context, page = await init_browser(proxy_config) 
 
-            await page.goto("https://sssinstagram.com/ru/story-saver", timeout=2000)
-            await page.wait_for_load_state("domcontentloaded")  # Tez yuklanadi
+        await page.fill(".form__input", username)
+        await page.click(".form__submit")
 
-            match = re.search(r"stories/([^/]+)/", username)
-            uname = match.group(1) if match else username
+        await page.wait_for_selector(".button__download", timeout=5000)
 
-            await page.fill(".form__input", username)
-            await page.click(".form__submit")
+        story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
+        thumbnail_links = [await el.get_attribute("src") for el in await page.locator(".media-content__image").all()]
 
-            await page.wait_for_selector(".button__download", timeout=2000)
+        if not story_links:
+            return {"error": True, "message": "Invalid response from the server"}
 
-            # Eng tez usul: locator().all() o‘rniga bir martada olish
-            story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
-            thumbnail_links = [await el.get_attribute("src") for el in await page.locator(".media-content__image").all()]
+        return {
+            "error": False,
+            "hosting": "instagram",
+            "type": "stories",
+            "username": username,
+            "medias": [{"download_url": url, "thumb": thumb} for url, thumb in zip(story_links, thumbnail_links)]
+        }
+    except Exception as e:
+        return {"error": True, "message": f"Error: {e}"}
+# async def get_instagram_story_urls(username, proxy_config):
+#     """ Instagram storylarini olish """
+#     try:
+#         browser = await init_browser(proxy_config)  
+#         context = await browser.new_context() 
+#         page = await context.new_page()
 
-            await browser.close()
+#         await page.goto("https://sssinstagram.com/ru/story-saver", timeout=2000)
+#         await page.wait_for_load_state("domcontentloaded")
 
-            if not story_links:
-                return {"error": True, "message": "Invalid response from the server"}
+#         match = re.search(r"stories/([^/]+)/", username)
+#         uname = match.group(1) if match else username
 
-            return {
-                "error": False,
-                "hosting": "instagram",
-                "type": "stories",
-                "username": uname,
-                "medias": [{"download_url": url, "thumb": thumb} for url, thumb in zip(story_links, thumbnail_links)]
-            }
-        except Exception as e:
-            return {"error": True, "message": f"Error: {e}"}
+#         await page.fill(".form__input", username)
+#         await page.click(".form__submit")
+
+#         await page.wait_for_selector(".button__download", timeout=2000)
+
+#         story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
+#         thumbnail_links = [await el.get_attribute("src") for el in await page.locator(".media-content__image").all()]
+
+#         await context.close()  
+
+#         if not story_links:
+#             return {"error": True, "message": "Invalid response from the server"}
+
+#         return {
+#             "error": False,
+#             "hosting": "instagram",
+#             "type": "stories",
+#             "username": uname,
+#             "medias": [{"download_url": url, "thumb": thumb} for url, thumb in zip(story_links, thumbnail_links)]
+#         }
+#     except Exception as e:
+#         return {"error": True, "message": f"Error: {e}"}
+    
+
+# async def get_instagram_story_urls(username, proxy_config):
+#     try:
+#         browser = await init_browser(proxy_config)
+#         context = await browser.new_context()
+#         page = await context.new_page()
+
+#         await page.goto("https://sssinstagram.com/ru/story-saver", timeout=2000)
+#         await page.wait_for_load_state("domcontentloaded")
+
+#         match = re.search(r"stories/([^/]+)/", username)
+#         uname = match.group(1) if match else username
+
+#         await page.fill(".form__input", username)
+#         await page.click(".form__submit")
+
+#         await page.wait_for_selector(".button__download", timeout=2000)
+
+#         story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
+#         thumbnail_links = [await el.get_attribute("src") for el in await page.locator(".media-content__image").all()]
+
+#         await context.close()
+
+#         if not story_links:
+#             return {"error": True, "message": "Invalid response from the server"}
+
+#         return {
+#             "error": False,
+#             "hosting": "instagram",
+#             "type": "stories",
+#             "username": uname,
+#             "medias": [{"download_url": url, "thumb": thumb} for url, thumb in zip(story_links, thumbnail_links)]
+#         }
+#     except Exception as e:
+#         return {"error": True, "message": f"Error: {e}"}
+    
+# async def browser_keepalive(proxy_config, interval=300):
+#     """Restart browser every interval seconds to refresh proxy"""
+#     while True:
+#         await asyncio.sleep(interval)
+#         await close_browser()
+#         await init_browser(proxy_config)
+
+# async def get_instagram_story_urls(username, proxy_config):
+#     async with async_playwright() as p:
+#         try:
+#             browser = await p.chromium.launch(
+#                 headless=True,  # Tezroq bo'lishi uchun True
+#                 args=["--no-sandbox", "--disable-setuid-sandbox"],  # Tez ochiladi
+#                 proxy=proxy_config
+#             )
+#             page = await browser.new_page()
+
+#             await page.goto("https://sssinstagram.com/ru/story-saver", timeout=2000)
+#             await page.wait_for_load_state("domcontentloaded")  # Tez yuklanadi
+
+#             match = re.search(r"stories/([^/]+)/", username)
+#             uname = match.group(1) if match else username
+
+#             await page.fill(".form__input", username)
+#             await page.click(".form__submit")
+
+#             await page.wait_for_selector(".button__download", timeout=2000)
+
+#             # Eng tez usul: locator().all() o‘rniga bir martada olish
+#             story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
+#             thumbnail_links = [await el.get_attribute("src") for el in await page.locator(".media-content__image").all()]
+
+#             await browser.close()
+
+#             if not story_links:
+#                 return {"error": True, "message": "Invalid response from the server"}
+
+#             return {
+#                 "error": False,
+#                 "hosting": "instagram",
+#                 "type": "stories",
+#                 "username": uname,
+#                 "medias": [{"download_url": url, "thumb": thumb} for url, thumb in zip(story_links, thumbnail_links)]
+#             }
+#         except Exception as e:
+#             return {"error": True, "message": f"Error: {e}"}
 # async def get_instagram_story_urls(username, proxy_config):
 #     async with async_playwright() as p:
 #         try:
@@ -422,11 +590,14 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
     browser = None  # Browserni boshlang'ich qiymatga o‘rnatish
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, proxy=proxy_config)
+            # browser = await p.chromium.launch(headless=True, proxy=proxy_config)
+            browser, context, page1 = await init_browser(proxy_config=proxy_config)
+            print(browser, 'browder images')
+            
             page = await browser.new_page()
 
             try:
-                await page.goto(post_url, timeout=2500)  # 15 soniya ichida yuklanishi kerak
+                await page.goto(post_url, timeout=2000)  # 15 soniya ichida yuklanishi kerak
             except PlaywrightTimeoutError:
                 print("⏳ Time out!1")
                 return {"error": True, "message": "Invalid response from the server"}
@@ -474,7 +645,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
                 "error": False,
                 "hosting": "instagram",
                 "type": "album" if len(image_urls) > 1 else "image",
-                "shortcode": shortcode,
+                "shortcode": shortcode, 
                 "caption": caption,
                 "medias": [
                     {

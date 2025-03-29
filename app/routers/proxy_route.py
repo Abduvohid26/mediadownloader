@@ -5,6 +5,7 @@ from models.user import ProxyServers
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import SessionLocal
 from sqlalchemy.future import select
+from sqlalchemy.sql import func
 
 proxies = APIRouter()
 
@@ -43,3 +44,20 @@ async def get_file_and_create(file: UploadFile, db: AsyncSession = Depends(get_d
         await db.commit()
     
     return {"status": "ok"}
+
+
+async def get_proxy_config():
+    async with SessionLocal() as db:
+        result = await db.execute(
+            select(ProxyServers)
+            .filter(ProxyServers.instagram == True)
+            .order_by(func.random())  
+            .limit(1)  
+        )
+        _proxy = result.scalars().first()
+        proxy_config = {    
+            "server": f"http://{_proxy.proxy}",
+            "username": _proxy.username,
+            "password": _proxy.password
+        }
+        return proxy_config
