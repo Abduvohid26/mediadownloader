@@ -587,12 +587,9 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
     Returns:
         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
     """
-    # browser = None  # Browserni boshlang'ich qiymatga o‘rnatish
     try:
         async with async_playwright() as p:
-            # browser = await p.chromium.launch(headless=True, proxy=proxy_config)
             browser, context, page1 = await init_browser(proxy_config=proxy_config)
-            # print(browser, 'browder images')
             
             page = await context.new_page()
 
@@ -612,7 +609,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
             shortcode = path.strip("/").split("/")[-1]
 
             try:
-                await page.wait_for_selector("article", timeout=2000)
+                await page.wait_for_selector("article", timeout=5000)
             except PlaywrightTimeoutError:
                 print("🔄 Timeout while waiting for article")
                 return {"error": True, "message": "Invalid response from the server"}
