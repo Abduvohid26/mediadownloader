@@ -20,7 +20,6 @@ async def get_instagram_media(insta_data: InstaSchema = Form(...), db : AsyncSes
         .limit(1)  
     )
     _proxy = result.scalars().first()
-    print(_proxy.proxy, 'proxy')
     proxy_config = {    
         "server": f"http://{_proxy.proxy}",
         "username": _proxy.username,
