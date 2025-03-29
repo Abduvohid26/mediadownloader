@@ -6,7 +6,7 @@ from schema.user import UserCreate, User
 from database.database import SessionLocal
 from routers.insta_route import insta_router
 from routers.proxy_route import proxies
-from routers.insta import browser_keepalive, close_browser
+from routers.insta import browser_keepalive, close_browser, browser_keepalive_images
 from sqlalchemy.sql import func
 import asyncio
 app = FastAPI()
@@ -43,6 +43,7 @@ async def get_proxy_config():
 @app.on_event("startup")
 async def startup():
     proxy_config = await get_proxy_config()
+    asyncio.create_task(browser_keepalive_images(proxy_config))
     asyncio.create_task(browser_keepalive(proxy_config))
     
 

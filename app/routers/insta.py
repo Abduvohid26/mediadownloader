@@ -662,6 +662,40 @@ from playwright.async_api import async_playwright, TimeoutError
 #         if browser is not None:
 #             await browser.close()  # Browserni har doim yopish
 
+_browser_image = None
+_playwright_image = None
+
+async def init_browser_images(proxy_config):
+    """ Brauzerni, contextni va sahifani oldindan ochib qo‘yish """
+    global _browser_image, _playwright_image
+    if _browser is None:
+        print("🔄 Yangi brauzer ishga tushdi Images...")
+        _playwright_image = await async_playwright().start()
+        _browser_image = await _playwright_image.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox"],
+            proxy=proxy_config
+        )
+    return _browser_image
+
+async def close_browser_images():
+    """ Brauzerni to‘g‘ri yopish """
+    global _browser_image, _playwright_image
+    if _browser_image:
+        print("❌ Brauzer yopildi")
+        await _browser_image.close()
+        _browser_image = None
+    if _playwright_image:
+        await _playwright_image.stop()
+        _playwright_image = None
+
+async def browser_keepalive_images(proxy_config, interval=100):
+    """ 🔄 Har `interval` sekundda brauzerni qayta ishga tushiradi """
+    while True:
+        await asyncio.sleep(interval)
+        await close_browser_images()
+        await init_browser_images(proxy_config)
+
 from urllib.parse import urlparse
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
@@ -677,11 +711,11 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
     """
     # browser = None  # Browserni oldindan e'lon qilamiz
     try:
-        browser, context, page1 = await init_browser(proxy_config=proxy_config)  # Browserni oldindan ochamiz
-        page = await context.new_page()  # Yangi sahifa ochamiz
-
+        browser = await init_browser_images(proxy_config=proxy_config)  
+        page = await browser.new_page()  
+        
         try:
-            await page.goto(post_url, timeout=5000)
+            await page.goto(post_url, timeout=15000)
         except PlaywrightTimeoutError:
             print("⏳ Time out!1")
             return {"error": True, "message": "Invalid response from the server"}
@@ -691,7 +725,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
         shortcode = path.strip("/").split("/")[-1]
 
         try:
-            await page.wait_for_selector("article", timeout=5000)
+            await page.wait_for_selector("article", timeout=15000)
         except PlaywrightTimeoutError:
             print("🔄 Timeout while waiting for article")
             return {"error": True, "message": "Invalid response from the server"}
@@ -732,9 +766,6 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
         print("❌ Error:", str(e))
         return {"error": True, "message": "Invalid response from the server"}
 
-    finally:
-        if browser is not None:
-            await browser.close()  # Browserni yopamiz
 
 
 
