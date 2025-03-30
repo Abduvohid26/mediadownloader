@@ -22,17 +22,34 @@ from playwright.async_api import async_playwright
 
 import re
 from playwright.async_api import async_playwright, TimeoutError
+from cachetools import TTLCache
 
 
 
+cache = TTLCache(maxsize=500, ttl=600)
 _browser = None
 _playwright = None
 
 
 async def init_browser(proxy_config):
     """ Brauzerni, contextni va sahifani oldindan ochib qo‘yish """
-    global _browser, _context, _page, _playwright
-    if _browser is None:
+    # global _browser, _context, _page, _playwright
+    # if _browser is None:
+    #     print("🔄 Yangi brauzer ishga tushdi...")
+    #     _playwright = await async_playwright().start()
+    #     _browser = await _playwright.chromium.launch(
+    #         headless=True,
+    #         args=["--no-sandbox", "--disable-setuid-sandbox"],
+    #         proxy=proxy_config
+    #     )
+    #     _context = await _browser.new_context()
+    #     _page = await _context.new_page()  
+
+    #     await _page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000) 
+    #     await _page.wait_for_load_state("domcontentloaded")
+    # print("Mavjud", _context)
+    # return _browser, _context, _page
+    if cache.get("browser") is None:
         print("🔄 Yangi brauzer ishga tushdi...")
         _playwright = await async_playwright().start()
         _browser = await _playwright.chromium.launch(
@@ -40,28 +57,41 @@ async def init_browser(proxy_config):
             args=["--no-sandbox", "--disable-setuid-sandbox"],
             proxy=proxy_config
         )
+        cache["browser"] = _browser
+        cache["playwright"] = _playwright
         _context = await _browser.new_context()
-        _page = await _context.new_page()  
+        cache["context"] = _context
 
-        await _page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000) 
+        _page = await _context.new_page()
+        cache["page"] = _page
+
+        await _page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000)
         await _page.wait_for_load_state("domcontentloaded")
+    print(cache.get("browser"))
+    return cache.get("browser"), cache.get("context"), cache.get("page")
 
-
-    print("Mavjud", _context)
-    return _browser, _context, _page
 
 async def close_browser():
     """ Brauzerni to‘g‘ri yopish """
-    global _browser, _playwright
-    if _browser:
+    if cache.get("browser") is not None:
         print("❌ Brauzer yopildi")
-        await _browser.close()
-        _browser = None
-    if _playwright:
-        await _playwright.stop()
-        _playwright = None
+        await cache.get("browser").close()
+        cache["browser"] = None
+    if cache.get("playwright") is not None:
+        await cache.get("playwright").stop()
+        cache["playwright"] = None
 
-async def browser_keepalive(proxy_config, interval=1000):
+        
+    # global _browser, _playwright
+    # if _browser:
+    #     print("❌ Brauzer yopildi")
+    #     await _browser.close()
+    #     _browser = None
+    # if _playwright:
+    #     await _playwright.stop()
+    #     _playwright = None
+
+async def browser_keepalive(proxy_config, interval=600):
     """ 🔄 Har `interval` sekundda brauzerni qayta ishga tushiradi """
     while True:
         await asyncio.sleep(interval)
@@ -179,9 +209,23 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
     """
     try:
-        browser = await init_browser_images(proxy_config=proxy_config)  
-        page = await browser.new_page()  
-        
+        # context = cache.get("context")
+        # print(context, 'context')
+        # page = None
+        # if context is not None:
+        #     page = await context.new_page()
+        #     print("Bor")
+        # else:
+        #     await init_browser_images(proxy_config)
+        #     browser = cache.get("browser")
+        #     context = await browser.new_context()
+        #     page = await context.new_page()
+        browser, context, page1 = await init_browser(proxy_config) 
+        try:
+            page = await context.new_page()
+        except Exception as e:
+            print(e)
+            return {"error": True, "message": "Invalid response from the server"}
         try:
             await page.goto(post_url, timeout=15000)
         except PlaywrightTimeoutError:
