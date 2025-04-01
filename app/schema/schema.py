@@ -26,4 +26,18 @@ class InstaStory(BaseModel):
 
 
 # class ProxyServerFileSCHEMA(BaseModel):
-#     file: 
+#     file:
+
+
+
+class YtSchema(BaseModel):
+    url: str
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "url": "https://www.instagram.com/example.uz/"
+                }
+            ]
+        }
+    }

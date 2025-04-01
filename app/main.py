@@ -6,13 +6,14 @@ from schema.user import UserCreate, User
 from database.database import SessionLocal
 from routers.insta_route import insta_router
 from routers.proxy_route import proxies
+from routers.yt_route import yt_router
 from routers.insta import browser_keepalive, close_browser, browser_keepalive_images
 from sqlalchemy.sql import func
 import asyncio
 app = FastAPI()
 app.include_router(insta_router)
 app.include_router(proxies)
-
+app.include_router(yt_router)
 # DB sessiyasini olish
 # DB sessiyasini olish (Asinxron)
 async def get_db() -> AsyncSession:

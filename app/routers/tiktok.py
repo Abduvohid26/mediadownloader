@@ -760,9 +760,45 @@ POST_URL = "https://www.instagram.com/p/DHlg_abtePq/?utm_source=ig_web_copy_link
 
 
 
-from insta import get_instagram_story_urls
+# from insta import get_instagram_story_urls
 
 
-import asyncio
-print(asyncio.run(get_instagram_story_urls("https://www.instagram.com/stories/shayk.hulislamova/")))
+# import asyncio
+# print(asyncio.run(get_instagram_story_urls("https://www.instagram.com/stories/shayk.hulislamova/")))
 # print(asyncio.run(get_instagram_story_urls("https://www.instagram.com/stories/sardor.salimjanov/3597788380524588838/")))
+
+
+
+# from TikTokApi import TikTokApi
+
+# api = TikTokApi()
+# video_url = "https://vt.tiktok.com/ZSrLJ2KnQ/"
+# vide_data = api.video(url=video_url).bytes()
+# with open("video.mp4", "wb") as f:
+#     f.write(vide_data)
+
+# import yt_dlp
+
+# def get_tiktok_video(url):
+#     ydl_opts = {
+#         "quiet": True,
+#         "extract_flat": True,
+#     }
+#     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#         info = ydl.extract_info(url, download=False)
+#         return info
+    
+# video_url = "https://vt.tiktok.com/ZSrLJ2KnQ/"
+# info = get_tiktok_video(video_url)
+# print(info)
+
+# import subprocess
+
+# def get_tiktok_video_url(video_url):
+#     cmd = ["tiktok-scraper", "video", video_url, "-d"]
+#     result = subprocess.run(cmd, capture_output=True, text=True)
+#     return result.stdout.strip()
+
+# video_url = "https://vt.tiktok.com/ZSrLJ2KnQ/"
+# direct_link = get_tiktok_video_url(video_url)
+# print("Direct Video URL:", direct_link)

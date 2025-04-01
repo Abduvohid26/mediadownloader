@@ -27,28 +27,14 @@ from cachetools import TTLCache
 
 
 cache = TTLCache(maxsize=500, ttl=600)
-_browser = None
-_playwright = None
+
+
+async def finall_browser(proxy_config):
+    pass
 
 
 async def init_browser(proxy_config):
     """ Brauzerni, contextni va sahifani oldindan ochib qo‘yish """
-    # global _browser, _context, _page, _playwright
-    # if _browser is None:
-    #     print("🔄 Yangi brauzer ishga tushdi...")
-    #     _playwright = await async_playwright().start()
-    #     _browser = await _playwright.chromium.launch(
-    #         headless=True,
-    #         args=["--no-sandbox", "--disable-setuid-sandbox"],
-    #         proxy=proxy_config
-    #     )
-    #     _context = await _browser.new_context()
-    #     _page = await _context.new_page()  
-
-    #     await _page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000) 
-    #     await _page.wait_for_load_state("domcontentloaded")
-    # print("Mavjud", _context)
-    # return _browser, _context, _page
     if cache.get("browser") is None:
         print("🔄 Yangi brauzer ishga tushdi...")
         _playwright = await async_playwright().start()
@@ -164,6 +150,10 @@ from playwright.async_api import async_playwright, TimeoutError
 _browser_image = None
 _playwright_image = None
 
+
+    
+
+
 async def init_browser_images(proxy_config):
     """ Brauzerni, contextni va sahifani oldindan ochib qo‘yish """
     global _browser_image, _playwright_image
@@ -209,17 +199,6 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
     """
     try:
-        # context = cache.get("context")
-        # print(context, 'context')
-        # page = None
-        # if context is not None:
-        #     page = await context.new_page()
-        #     print("Bor")
-        # else:
-        #     await init_browser_images(proxy_config)
-        #     browser = cache.get("browser")
-        #     context = await browser.new_context()
-        #     page = await context.new_page()
         browser, context, page1 = await init_browser(proxy_config) 
         try:
             page = await context.new_page()

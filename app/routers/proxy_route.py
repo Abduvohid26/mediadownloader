@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 from sqlalchemy.sql import func
 
 proxies = APIRouter()
-
+    
 
 async def get_db() -> AsyncSession:
     async with SessionLocal() as db:
