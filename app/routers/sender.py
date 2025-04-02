@@ -10,32 +10,13 @@ logger = logging.getLogger(__name__)
 ROOT_PATH = Path(__file__).parent.parent
 sender = APIRouter()
 
-#
-# @sender.post("/send_large_video/")
-# async def send_large_video(user_id: int, video_url: str, type: str):
-#     try:
-#         app = Client("bot", bot_token="7784958688:AAFwikdjjS97CJXq9dcSLDq-IV7m1R6VO1o", api_id=25359112, api_hash="5589d52cb52c72686307211a46cb6bae")
-#         await app.start()
-#         if type == "video":
-#             await app.send_video(chat_id=user_id, video=video_url)
-#         elif type == "audio":
-#             await app.send_audio(chat_id=user_id, audio=video_url)
-#         else:
-#             await app.send_message(chat_id=user_id, text="Invalid type")
-#
-#         return {"status": "success"}
-#
-#     except Exception as e:
-#         return {"status": "error", "message": str(e)}
-#     finally:
-#         await app.stop()
-
 import yt_dlp
 import os
 import asyncio
 import re
 from typing import Literal
 import cachetools
+from .proxy_route import get_proxy_config
 
 CACHE = cachetools.TTLCache(maxsize=100, ttl=300)
 
@@ -71,6 +52,7 @@ async def get_and_save_yt(
 
 
 async def download_yt(request: Request, url: str, k):
+    proxy_config = await get_proxy_config()
     yt_opts = {
         'format': f'bestvideo[height<={k}]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': f'{ROOT_PATH}/static/output/video/%(id)s.%(ext)s',
@@ -79,6 +61,10 @@ async def download_yt(request: Request, url: str, k):
         'overwrites': True,
         'quiet': True,
     }
+    if proxy_config:
+        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+        yt_opts['proxy'] = proxy_url
+    
     try:
         loop = asyncio.get_running_loop()
         with yt_dlp.YoutubeDL(yt_opts) as ydl:
