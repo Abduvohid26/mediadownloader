@@ -38,11 +38,13 @@ async def init_browser(proxy_config):
     if cache.get("browser") is None:
         print("🔄 Yangi brauzer ishga tushdi...")
         _playwright = await async_playwright().start()
-        _browser = await _playwright.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox"],
-            proxy=proxy_config
-        )
+        options = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+        }
+        if proxy_config:
+            options["proxy"] = proxy_config
+        _browser = await _playwright.chromium.launch(**options)
         cache["browser"] = _browser
         cache["playwright"] = _playwright
         _context = await _browser.new_context()
@@ -160,11 +162,13 @@ async def init_browser_images(proxy_config):
     if _browser_image is None:
         print("🔄 Yangi brauzer ishga tushdi Images...")
         _playwright_image = await async_playwright().start()
-        _browser_image = await _playwright_image.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox"],
-            proxy=proxy_config
-        )
+        options = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+        }
+        if proxy_config:
+            options["proxy"] = proxy_config
+        _browser_image = await _playwright_image.chromium.launch(**options)
     return _browser_image
 
 async def close_browser_images():

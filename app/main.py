@@ -39,7 +39,8 @@ async def get_proxy_config():
             _proxy = result.scalars().first()
 
             if not _proxy:  
-                raise ValueError("No proxy servers available in the database.")
+                print("No proxy servers available in the database.")
+                return None
 
             proxy_config = {    
                 "server": f"http://{_proxy.proxy}",
@@ -56,7 +57,7 @@ async def get_proxy_config():
 @app.on_event("startup")
 async def startup():
     proxy_config = await get_proxy_config()
-    if not proxy_config:
+    if proxy_config is None:
         pass
     else:
         asyncio.create_task(browser_keepalive_images(proxy_config))
