@@ -11,6 +11,7 @@ from routers.sender import sender
 from routers.insta import browser_keepalive, close_browser, browser_keepalive_images
 from sqlalchemy.sql import func
 import asyncio
+from sqlalchemy.exc import SQLAlchemyError
 app = FastAPI()
 app.include_router(insta_router)
 app.include_router(proxies)
@@ -26,22 +27,31 @@ async def get_db() -> AsyncSession:
 async def read_root():
     return {"message": "Hello, World!"}
 
-
 async def get_proxy_config():
     async with SessionLocal() as db:
-        result = await db.execute(
-            select(ProxyServers)
-            .filter(ProxyServers.instagram == True)
-            .order_by(func.random())  
-            .limit(1)  
-        )
-        _proxy = result.scalars().first()
-        proxy_config = {    
-            "server": f"http://{_proxy.proxy}",
-            "username": _proxy.username,
-            "password": _proxy.password
-        }
-        return proxy_config
+        try:
+            result = await db.execute(
+                select(ProxyServers)
+                .filter(ProxyServers.instagram == True)
+                .order_by(func.random())  
+                .limit(1)  
+            )
+            _proxy = result.scalars().first()
+
+            if not _proxy:  
+                raise ValueError("No proxy servers available in the database.")
+
+            proxy_config = {    
+                "server": f"http://{_proxy.proxy}",
+                "username": _proxy.username,
+                "password": _proxy.password
+            }
+            return proxy_config
+        
+        except SQLAlchemyError as e:
+            print(f"Database error: {e}")
+            return None
+
 
 @app.on_event("startup")
 async def startup():
