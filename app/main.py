@@ -56,6 +56,8 @@ async def get_proxy_config():
 @app.on_event("startup")
 async def startup():
     proxy_config = await get_proxy_config()
+    if not proxy_config:
+        raise ValueError("No proxy servers available in the database.")
     asyncio.create_task(browser_keepalive_images(proxy_config))
     asyncio.create_task(browser_keepalive(proxy_config))
     
