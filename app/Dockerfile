@@ -36,6 +36,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN apt update && apt install -y ffmpeg
+
+
 RUN pip install --upgrade pip
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt

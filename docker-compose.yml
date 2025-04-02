@@ -17,8 +17,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://abduvohid:20042629ab@db:5432/my_database
     volumes:
-      - static_volume:/media_service/static  
-      - media_volume:/media_service/media   
+      - ./app/static:/media_service/static
+      - ./app/media:/media_service/media
 
   db:
     image: postgres:15

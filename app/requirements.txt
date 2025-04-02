@@ -27,13 +27,17 @@ packaging==24.2
 playwright==1.51.0
 propcache==0.3.0
 psycopg2-binary==2.9.10
+pyaes==1.6.1
+pyasn1==0.6.1
 pydantic==2.10.6
 pydantic_core==2.27.2
 pyee==12.1.1
+Pyrogram==2.0.106
 PySocks==1.7.1
 python-dotenv==1.0.1
 python-multipart==0.0.20
 requests==2.32.3
+rsa==4.9
 selenium==4.30.0
 sniffio==1.3.1
 sortedcontainers==2.4.0
@@ -41,6 +45,8 @@ soupsieve==2.6
 SQLAlchemy==2.0.39
 SQLAlchemy-Utils==0.41.2
 starlette==0.46.1
+Telethon==1.39.0
+TgCrypto==1.2.5
 TikTokApi==7.0.0
 trio==0.29.0
 trio-websocket==0.12.2

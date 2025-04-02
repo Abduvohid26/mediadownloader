@@ -3,7 +3,7 @@ from schema.schema import YtSchema
 from .youtube import get_yt_data
 yt_router = APIRouter()
 
-@yt_router.post("/yt/media")
+# @yt_router.post("/yt/media")
 async def yt_media(yt_url: YtSchema = Form(...)):
     try:
         data = await get_yt_data(video_url=yt_url.url.strip())
