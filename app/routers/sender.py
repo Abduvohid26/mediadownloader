@@ -101,32 +101,34 @@ async def download_yt(request: Request, url: str, k):
 
     video_opts = {
         'format': f'bestvideo[height<={k}]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        # 'format': 'bestvideo/best',
         'outtmpl': f'{ROOT_PATH}/static/output/video/%(id)s.%(ext)s',
         'merge_output_format': 'mp4',
         'noplaylist': True,
         'overwrites': True,
-        'quiet': True,
+        'quiet': False,
     }
 
     audio_opts = {
         'format': 'bestaudio[ext=m4a]/best',
+        # 'format': 'bestaudio/best',
         'outtmpl': f'{ROOT_PATH}/static/output/audio/%(id)s.%(ext)s',
         'noplaylist': True,
         'overwrites': True,
-        'quiet': True,
+        'quiet': False,
     }
 
     if proxy_config:
         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
         video_opts['proxy'] = proxy_url
         audio_opts['proxy'] = proxy_url
-
+    print(video_opts, '\n', audio_opts)
     try:
         loop = asyncio.get_running_loop()
 
         with yt_dlp.YoutubeDL(video_opts) as ydl:
             video_result = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=True))
-
+            print(video_result, 'video_result')
         with yt_dlp.YoutubeDL(audio_opts) as ydl:
             audio_result = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=True))
 
