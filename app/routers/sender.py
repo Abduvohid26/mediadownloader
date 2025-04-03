@@ -61,6 +61,7 @@ async def download_yt(request: Request, url: str, k):
         'overwrites': True,
         'quiet': True,
     }
+    print(proxy_config, 'proxy config')
     if proxy_config:
         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
         yt_opts['proxy'] = proxy_url
