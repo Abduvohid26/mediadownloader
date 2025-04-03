@@ -1,30 +1,5 @@
-import yt_dlp
-import time
-import asyncio
-from fastapi import HTTPException
-import instaloader
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import asyncio
-from playwright.async_api import async_playwright
-import yt_dlp
-import aiohttp
-from bs4 import BeautifulSoup
-import re
-from playwright.async_api import async_playwright
-
-import re
-from playwright.async_api import async_playwright, TimeoutError
+import traceback
 from cachetools import TTLCache
-
-
 
 cache = TTLCache(maxsize=500, ttl=600)
 
@@ -69,15 +44,6 @@ async def close_browser():
         await cache.get("playwright").stop()
         cache["playwright"] = None
 
-        
-    # global _browser, _playwright
-    # if _browser:
-    #     print("❌ Brauzer yopildi")
-    #     await _browser.close()
-    #     _browser = None
-    # if _playwright:
-    #     await _playwright.stop()
-    #     _playwright = None
 
 async def browser_keepalive(proxy_config, interval=600):
     """ 🔄 Har `interval` sekundda brauzerni qayta ishga tushiradi """
@@ -112,19 +78,19 @@ async def get_instagram_story_urls(username, proxy_config):
     except Exception as e:
         return {"error": True, "message": f"Error: {e}"}
 
-
-
 async def get_video(info):
     data = {
-            "error": False,
-            "hosting": "instagram",
-            "type": "video",
-            "shortcode": info["id"],
-            "caption": info.get("description", ""),
-            "thumbnail": info["thumbnails"][-1]["url"] if "thumbnails" in info else None,
-            "download_url": info["url"]
-        }
+        "error": False,
+        "hosting": "instagram",
+        "type": "video",
+        "title": info.get("title", None),
+        "shortcode": info.get("id", None),
+        "caption": info.get("description", None),
+        "thumbnail": info["thumbnails"][-1]["url"] if "thumbnails" in info else None,
+        "download_url": next((item['url'] for item in info.get('formats', []) if list(item.keys())[0] == 'url'), None)
+    }
     return data
+
 
 async def get_video_album(info):
     data = {
@@ -143,9 +109,6 @@ async def get_video_album(info):
     }
     return data
 
-
-import asyncio
-from urllib.parse import urlparse
 from playwright.async_api import async_playwright, TimeoutError
 
 
@@ -203,7 +166,7 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
     """
     try:
-        browser, context, page1 = await init_browser(proxy_config) 
+        browser, context, page1 = await init_browser(proxy_config)
         try:
             page = await context.new_page()
         except Exception as e:
@@ -267,42 +230,148 @@ async def get_instagram_post_images(post_url, caption, proxy_config):
 import yt_dlp
 import asyncio
 
+
 async def download_instagram_media(url, proxy_config):
     loop = asyncio.get_running_loop()
     try:
-        def extract():
-            proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-            print(proxy_url, 'proxy url')
-            options = {
-                'quiet': True,
-                'proxy': proxy_url,
-            }
-            with yt_dlp.YoutubeDL(options) as ydl:
-                return ydl.extract_info(url, download=False)
+        # Async wrapper for yt-dlp extraction
+        async def extract_info():
+            def sync_extract():
+                proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+                options = {
+                    'quiet': True,
+                    'proxy': proxy_url,
+                    'extract_flat': False,
+                }
+                with yt_dlp.YoutubeDL(options) as ydl:
+                    return ydl.extract_info(url, download=False)
 
-        info = await loop.run_in_executor(None, extract)
-        if "entries" in info:
+            return await loop.run_in_executor(None, sync_extract)
+
+        # Get media info asynchronously
+        info = await extract_info()
+
+        if not info:
+            raise ValueError("No info returned from yt-dlp")
+
+        if "entries" in info:  # This is an album/multi
             data = await get_video_album(info)
-            print(data, 'tyl')
-            if data["medias"] == []:
-                data = await get_instagram_post_images(post_url=url, caption=data["caption"], proxy_config=proxy_config)
-            else:
-                return data
-        else:
+            if not data.get("medias"):
+                data = await get_instagram_post_images(
+                    post_url=url,
+                    caption=data.get("caption", ""),
+                    proxy_config=proxy_config
+                )
+        else:  # Single media item
             data = await get_video(info)
-        print(data, 'shu')
+
         return data
+
     except yt_dlp.utils.DownloadError as e:
         error_message = str(e)
         if "There is no video in this post" in error_message:
-            data = await get_instagram_post_images(post_url=url, caption="", proxy_config=proxy_config)
-            print(data, 'bizda')
-            return data
-        else:
-            pass
-            # print(f"❌ yt-dlp xatosi: {error_message}")
-            # return {"error": error_message}
+            return await get_instagram_post_images(
+                post_url=url,
+                caption="",
+                proxy_config=proxy_config
+            )
+        return {"error": error_message}
 
     except Exception as e:
-        print(f"Xatolik yuz berdi: {e}")
-        return None
+        print(f"Error downloading Instagram media: {str(e)}")
+        print(traceback.format_exc())
+        return {"error": str(e)}
+
+# async def download_instagram_media(url, proxy_config):
+#     loop = asyncio.get_running_loop()
+#     try:
+#         def extract():
+#             proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+#             print(proxy_url, 'proxy url')
+#             options = {
+#                 'quiet': False,
+#                 'proxy': proxy_url,
+#             }
+#             with yt_dlp.YoutubeDL(options) as ydl:
+#                 return ydl.extract_info(url, download=False)
+#
+#         info = await loop.run_in_executor(None, extract)
+#
+#         if not info:
+#             raise ValueError("No info returned from yt-dlp")
+#
+#         if "entries" in info:
+#             data = await get_video_album(info)
+#             print(data, 'tyl')
+#             if not data.get("medias"):
+#                 data = await get_instagram_post_images(
+#                     post_url=url,
+#                     caption=data.get("caption", ""),
+#                     proxy_config=proxy_config
+#                 )
+#             return data
+#         else:
+#             data = await get_video(info)
+#             print(data, 'shu')
+#             return data
+#
+#     except yt_dlp.utils.DownloadError as e:
+#         error_message = str(e)
+#         if "There is no video in this post" in error_message:
+#             data = await get_instagram_post_images(
+#                 post_url=url,
+#                 caption="",
+#                 proxy_config=proxy_config
+#             )
+#             print(data, 'bizda')
+#             return data
+#         else:
+#             print(f"❌ yt-dlp error: {error_message}")
+#             return {"error": error_message}
+#
+#     except Exception as e:
+#         print(f"Error occurred: {e}")
+#         print(f"Error type: {type(e)}")
+#         print(f"Traceback: {traceback.format_exc()}")
+#         return {"error": str(e)}
+#
+
+# async def download_instagram_media(url, proxy_config):
+#     loop = asyncio.get_running_loop()
+#     try:
+#         def extract():
+#             proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+#             print(proxy_url, 'proxy url')
+#             options = {
+#                 'quiet': False,
+#                 'proxy': proxy_url,
+#             }
+#             with yt_dlp.YoutubeDL(options) as ydl:
+#                 return ydl.extract_info(url, download=False)
+#         print(url, 'url')
+#         info = await loop.run_in_executor(None, extract)
+#         if "entries" in info:
+#             data = await get_video_album(info)
+#             print(data, 'tyl')
+#             if data["medias"] == []:
+#                 data = await get_instagram_post_images(post_url=url, caption=data["caption"], proxy_config=proxy_config)
+#             else:
+#                 return data
+#         else:
+#             data = await get_video(info)
+#         print(data, 'shu')
+#         return data
+#     except yt_dlp.utils.DownloadError as e:
+#         error_message = str(e)
+#         if "There is no video in this post" in error_message:
+#             data = await get_instagram_post_images(post_url=url, caption="", proxy_config=proxy_config)
+#             print(data, 'bizda')
+#             return data
+#         else:
+#             pass
+#             # print(f"❌ yt-dlp xatosi: {error_message}")
+#             # return {"error": error_message}
+#
+#     except Exception as e:
+#         print(f"Xatolik yuz berdi1: {e}")
+#         return None

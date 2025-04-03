@@ -20,9 +20,11 @@ from .proxy_route import get_proxy_config
 
 CACHE = cachetools.TTLCache(maxsize=100, ttl=300)
 
+
 def check_url(url: str) -> bool:
     regex = r"(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([\w\-]{11})"
     return bool(re.match(regex, url))
+
 
 async def check_k(k: str) -> bool:
     k_list = ["144", "240", "360", "480", "720", "1080"]
@@ -51,9 +53,53 @@ async def get_and_save_yt(
         raise HTTPException(status_code=404, detail="Invalid Youtube URL or Invalid Quality")
 
 
+# async def download_yt(request: Request, url: str, k):
+#     proxy_config = await get_proxy_config()
+#     yt_opts = {
+#         'format': f'bestvideo[height<={k}]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+#         'outtmpl': f'{ROOT_PATH}/static/output/video/%(id)s.%(ext)s',
+#         'merge_output_format': 'mp4',
+#         'noplaylist': True,
+#         'overwrites': True,
+#         'quiet': True,
+#     }
+#     print(proxy_config, 'proxy config')
+#     if proxy_config:
+#         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+#         yt_opts['proxy'] = proxy_url
+#
+#     try:
+#         loop = asyncio.get_running_loop()
+#         with yt_dlp.YoutubeDL(yt_opts) as ydl:
+#             result = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=True))
+#             print(result, 'result')
+#         file_path = f"{ROOT_PATH}/static/output/video/{result['id']}.mp4"
+#         exists = await asyncio.to_thread(os.path.exists, file_path)
+#
+#         if exists:
+#             base_url = f"{request.base_url}"
+#
+#             CACHE[result["id"]] = file_path
+#
+#             asyncio.create_task(delete_file_after_delay(file_path))
+#             video_info = {
+#                 "title": result.get('title', None),
+#                 "thumb": result.get('thumbnail', None),
+#                 "download_url": f"{base_url.rstrip('/')}{file_path.replace('/media_service', '')}",
+#                 "type": "video",
+#                 "ext": "mp4",
+#                 "quality": k,
+#                 "info": "This is url 5 minute active"
+#             }
+#             return video_info
+#     except Exception as e:
+#         logger.error(f"Xatolik yuz berdi: {e}")
+#         return {"status": "error", "message": "Invalid response from the server."}
+
 async def download_yt(request: Request, url: str, k):
     proxy_config = await get_proxy_config()
-    yt_opts = {
+
+    video_opts = {
         'format': f'bestvideo[height<={k}]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': f'{ROOT_PATH}/static/output/video/%(id)s.%(ext)s',
         'merge_output_format': 'mp4',
@@ -61,34 +107,53 @@ async def download_yt(request: Request, url: str, k):
         'overwrites': True,
         'quiet': True,
     }
-    print(proxy_config, 'proxy config')
+
+    audio_opts = {
+        'format': 'bestaudio[ext=m4a]/best',
+        'outtmpl': f'{ROOT_PATH}/static/output/audio/%(id)s.%(ext)s',
+        'noplaylist': True,
+        'overwrites': True,
+        'quiet': True,
+    }
+
     if proxy_config:
         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-        yt_opts['proxy'] = proxy_url
-    
+        video_opts['proxy'] = proxy_url
+        audio_opts['proxy'] = proxy_url
+
     try:
         loop = asyncio.get_running_loop()
-        with yt_dlp.YoutubeDL(yt_opts) as ydl:
-            result = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=True))
-        file_path = f"{ROOT_PATH}/static/output/video/{result['id']}.mp4"
-        exists = await asyncio.to_thread(os.path.exists, file_path)
 
-        if exists:
+        with yt_dlp.YoutubeDL(video_opts) as ydl:
+            video_result = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=True))
+
+        with yt_dlp.YoutubeDL(audio_opts) as ydl:
+            audio_result = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=True))
+
+        video_path = f"{ROOT_PATH}/static/output/video/{video_result['id']}.mp4"
+        audio_path = f"{ROOT_PATH}/static/output/audio/{audio_result['id']}.m4a"
+
+        video_exists = await asyncio.to_thread(os.path.exists, video_path)
+        audio_exists = await asyncio.to_thread(os.path.exists, audio_path)
+
+        if video_exists and audio_exists:
             base_url = f"{request.base_url}"
+            CACHE[video_result["id"]] = video_path
+            CACHE[audio_result["id"]] = audio_path
 
-            CACHE[result["id"]] = file_path
+            asyncio.create_task(delete_file_after_delay(video_path))
+            asyncio.create_task(delete_file_after_delay(audio_path))
 
-            asyncio.create_task(delete_file_after_delay(file_path))
-            video_info = {
-                "title": result.get('title', None),
-                "thumb": result.get('thumbnail', None),
-                "download_url": f"{base_url.rstrip('/')}{file_path.replace('/media_service', '')}",
-                "type": "video",
-                "ext": "mp4",
+            return {
+                "title": video_result.get('title', None),
+                "thumb": video_result.get('thumbnail', None),
+                "video_download_url": f"{base_url.rstrip('/')}{video_path.replace('/media_service', '')}",
+                "audio_download_url": f"{base_url.rstrip('/')}{audio_path.replace('/media_service', '')}",
+                "video_ext": "mp4",
+                "audio_ext": "m4a",
                 "quality": k,
-                "info": "This is url 5 minute active"
+                "info": "This URL is active for 5 minutes."
             }
-            return video_info
     except Exception as e:
         logger.error(f"Xatolik yuz berdi: {e}")
         return {"status": "error", "message": "Invalid response from the server."}
