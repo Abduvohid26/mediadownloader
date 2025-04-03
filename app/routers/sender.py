@@ -78,11 +78,10 @@ async def download_yt(request: Request, url: str, k):
             CACHE[result["id"]] = file_path
 
             asyncio.create_task(delete_file_after_delay(file_path))
-
             video_info = {
                 "title": result.get('title', None),
                 "thumb": result.get('thumbnail', None),
-                "download_url": f"{base_url.rstrip('/')}{file_path}",
+                "download_url": f"{base_url.rstrip('/')}{file_path.replace("/media_service", "")}",
                 "type": "video",
                 "ext": "mp4",
                 "quality": k,
