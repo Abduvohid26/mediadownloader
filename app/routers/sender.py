@@ -81,7 +81,7 @@ async def download_yt(request: Request, url: str, k):
             video_info = {
                 "title": result.get('title', None),
                 "thumb": result.get('thumbnail', None),
-                "download_url": f"{base_url.rstrip('/')}{file_path.replace("/media_service", "")}",
+                "download_url": f"{base_url.rstrip('/')}{file_path.replace('/media_service', '')}",
                 "type": "video",
                 "ext": "mp4",
                 "quality": k,
