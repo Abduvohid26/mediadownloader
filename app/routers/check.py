@@ -5,7 +5,7 @@ from .youtube import redis_client
 check_url = APIRouter()
 #
 
-@check_url.get("/check/token/")
+@check_url.get("/check/token/", include_in_schema=False)
 async def check(proxy_token: str):
      proxy_url = redis_client.get(proxy_token)
      if proxy_url is None:

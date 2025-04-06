@@ -18,7 +18,7 @@ async def get_db() -> AsyncSession:
 
 
 
-@proxies.post("/proxy/file/add/")
+@proxies.post("/proxy/file/add/", include_in_schema=False)
 async def get_file_and_create(file: UploadFile, db: AsyncSession = Depends(get_db)):
     content = await file.read()
     text_data = content.decode("utf-8")
