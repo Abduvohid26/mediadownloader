@@ -1,22 +1,32 @@
+import asyncio
+
+
 from fastapi import FastAPI, Depends
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.sql import func
+from sqlalchemy.exc import SQLAlchemyError
+
+
 from models.user import User, ProxyServers
-from schema.user import UserCreate, User
 from database.database import SessionLocal
+
+from schema.user import UserCreate, User
+
 from routers.insta_route import insta_router
 from routers.proxy_route import proxies
 from routers.yt_route import yt_router
 from routers.sender import sender
-from routers.insta import browser_keepalive, close_browser, browser_keepalive_images
-from sqlalchemy.sql import func
-import asyncio
-from sqlalchemy.exc import SQLAlchemyError
+from routers.insta import browser_keepalive, close_browser
+from routers.check import check_url
+
 app = FastAPI()
 app.include_router(insta_router)
 app.include_router(proxies)
 app.include_router(yt_router)
 app.include_router(sender)
+app.include_router(check_url)
 # DB sessiyasini olish
 # DB sessiyasini olish (Asinxron)
 async def get_db() -> AsyncSession:
@@ -60,7 +70,6 @@ async def startup():
     if proxy_config is None:
         pass
     else:
-        asyncio.create_task(browser_keepalive_images(proxy_config))
         asyncio.create_task(browser_keepalive(proxy_config))
     
 

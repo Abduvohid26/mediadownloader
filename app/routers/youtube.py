@@ -108,32 +108,46 @@ import yt_dlp
 
 
 # print(asyncio.run(get_yt_data("https://youtu.be/eJuqhhn6-EE?si=--MemPi_VnpFja7Z")))
-
-
 import httpx
-from typing import Any
 
-async def _get_data(data: dict[str, Any], video_url: str) -> dict[str, Any]:
-    return {
+from .proxy_route import get_proxy_config
+from .cashe import redis_client
+import os
+
+
+async def _get_data(data, video_url: str):
+    PROXY_URL = await get_proxy_config()
+    token = None
+    if PROXY_URL:
+        token = os.urandom(16).hex()
+        proxy_url = f"http://{PROXY_URL['username']}:{PROXY_URL['password']}@{PROXY_URL['server'].replace('http://', '')}"
+        redis_client.set(token, proxy_url, ex=60 * 60)
+        print(redis_client.get(token).decode(), "token value")
+    else:
+        pass
+    formatted_data = {
         "error": False,
         "url": video_url,
         "source": "youtube",
-        "title": data.get("title"),
-        "thumbnail": data.get("thumbnail"),
-        "duration": data.get("duration"),
+        "title": data.get("title", ""),
+        "thumbnail": data.get("thumbnail", ""),
+        "duration": data.get("duration", ""),
+        "proxy_token": token,
         "medias": [
             {
-                "type": m.get("type"),
-                "ext": m.get("extension"),
-                "is_audio": m.get("is_audio"),
-                "quality": m.get("quality"),
-                "url": m.get("url"),
+                "type": m.get("type", ""),
+                "ext": m.get("extension", ""),
+                "is_audio": m.get("is_audio", False),
+                "quality": m.get("quality", ""),
+                "url": m.get("url", ""),
             }
             for m in data.get("medias", [])
         ]
     }
+    return formatted_data
 
-async def get_yt_data(video_url: str) -> dict[str, Any]:
+
+async def get_yt_data(video_url: str):
     try:
         url = "https://www.clipto.com/api/youtube"
 
@@ -141,22 +155,22 @@ async def get_yt_data(video_url: str) -> dict[str, Any]:
             response = await client.post(url, json={"url": video_url})
 
         if response.status_code != 200:
-            print(f"Xatolik Yuz berdi, {response.status_code}")
+            print(f"Xatolik yuz berdi, {response.status_code}")
             return {"error": True, "message": "Invalid response from the server"}
 
         try:
             response_data = response.json()
-        except Exception as e:
-            print(f"Xatolik Yuz berdi: {e}")
-            return {"error": True, "message": "Invalid response from the server"}
+        except ValueError as e:  # Maxsus exception turi
+            print(f"JSON decode xatosi: {e}, Response content: {response.text}")
+            return {"error": True, "message": "Invalid JSON response"}
 
-        return await _get_data(response_data, video_url)
+        data = await _get_data(response_data, video_url)
+        return data  # Debug qismini olib tashlash
 
     except httpx.HTTPError as e:
         print(f"HTTP xatosi: {e}")
-        return {"error": True, "message": "Invalid response from the server"}
+        return {"error": True, "message": f"HTTP error: {str(e)}"}
 
     except Exception as e:
-        print(f"Xatolik yuz berdi: {e}")
-        return {"error": True, "message": "Invalid response from the server"}
-
+        print(f"Kutilmagan xatolik: {e}")
+        return {"error": True, "message": "Internal server error"}

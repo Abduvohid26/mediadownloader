@@ -40,7 +40,7 @@ async def delete_file_after_delay(file_path: str):
         logger.info(f"delete file {file_path}")
 
 
-@sender.post("/youtube/media/")
+# @sender.post("/youtube/media/")
 async def get_and_save_yt(
     request: Request,
     url: str = Form(...),

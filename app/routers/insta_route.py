@@ -6,9 +6,9 @@ from .proxy_route import get_db, get_proxy_config
 from sqlalchemy.ext.asyncio import AsyncSession
 insta_router = APIRouter()
 
-@insta_router.post("/instagram/media")
-async def get_instagram_media(insta_data: InstaSchema = Form(...), db : AsyncSession = Depends(get_db)):
-    url = insta_data.url.strip()
+@insta_router.get("/instagram/media")
+async def get_instagram_media(in_url: str, db : AsyncSession = Depends(get_db)):
+    url = in_url.strip()
     proxy_config = await get_proxy_config()
     # if not url.startswith("https://www.instagram.com/"):
     #     return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
@@ -18,7 +18,7 @@ async def get_instagram_media(insta_data: InstaSchema = Form(...), db : AsyncSes
     media_urls = await download_instagram_media(url, proxy_config)
 
     if not media_urls:  
-        return {"status": "error", "message": "Invalid response from the server."}
+        return {"error": True, "message": "Invalid response from the server."}
 
     return media_urls
 
