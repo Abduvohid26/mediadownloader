@@ -101,12 +101,12 @@ async def get_instagram_post_images(post_url, caption, browser_pool):
 
         browser, context, page = browser_instance
 
-        try:
-            await page.goto(post_url, timeout=15000)
-        except PlaywrightTimeoutError:
-            logger.error("❌ Timeout loading the page")
-            await browser_pool.release_browser(browser_instance)
-            return {"error": True, "message": "Timeout loading page"}
+        # try:
+        #     await page.goto(post_url, timeout=15000)
+        # except PlaywrightTimeoutError:
+        #     logger.error("❌ Timeout loading the page")
+        #     await browser_pool.release_browser(browser_instance)
+        #     return {"error": True, "message": "Timeout loading page"}
 
         path = urlparse(post_url).path
         shortcode = path.strip("/").split("/")[-1]
