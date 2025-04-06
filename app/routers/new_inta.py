@@ -100,7 +100,7 @@ async def get_instagram_post_images(post_url, caption, browser_pool):
             return {"error": True, "message": "Browser acquisition failed"}
 
         browser, context, page = browser_instance
-
+        print(page, "Page Page")
         # try:
         #     await page.goto(post_url, timeout=15000)
         # except PlaywrightTimeoutError:
