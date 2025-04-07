@@ -4,8 +4,8 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
-from .proxy_route import get_proxy_config
-from .cashe import redis_client
+# from .proxy_route import get_proxy_config
+# from .cashe import redis_client
 import weakref
 # Logger sozlamalari
 logger = logging.getLogger(__name__)
@@ -34,31 +34,74 @@ class BrowserPool:
             logger.info(f"✅ {self.pool_size} ta browser tayyor!")
 
     async def _create_browser_instance(self):
-        """Yangi brauzer yaratadi va uni pool ga qo'shadi"""
+        """Yangi brauzer yaratib, kerakli sahifani avtomatik ochish"""
         try:
             options = {
                 "headless": True,
-                "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--single-process"],
+                "args": [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-blink-features=AutomationControlled",  # Bot sifatida aniqlanishni oldini olish
+                    "--disable-infobars",
+                    "--no-first-run"
+                ],
                 "timeout": 60000
             }
             if self.proxy_config:
                 options["proxy"] = self.proxy_config
 
             browser = await self.playwright.chromium.launch(**options)
-            context = await browser.new_context()
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                viewport={"width": 1920, "height": 1080},
+                java_script_enabled=True
+            )
+            
+            # Yangi sahifa ochib kerakli URLga o'tamiz
             page = await context.new_page()
+            await self._navigate_initial_page(page)
+            print(page, "NEW PAGES")
+            await self.pool.put((browser, context, page))
+            logger.info(f"✅ Browser yaratildi va sahifa tayyor!")
 
+        except Exception as e:
+            logger.error(f"❌ Browser yaratishda xato: {e}")
+            await self._retry_create_instance()
+
+    async def _navigate_initial_page(self, page, max_retries=3):
+        """Kerakli sahifaga borishni ta'minlash"""
+        for attempt in range(max_retries):
             try:
                 await page.goto("https://sssinstagram.com/ru/story-saver", timeout=20000)
-                await page.wait_for_load_state("domcontentloaded")
+                logger.info("🔍 Sahifa muvaffaqiyatli yuklandi")
+                return
+                
             except Exception as e:
-                logger.warning(f"⚠️ Initial page load failed: {e}")
-                await page.close()
-                page = await context.new_page()
+                logger.warning(f"⚠️ Sahifaga kirishda xato ({attempt+1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    raise
+                await asyncio.sleep(1)
+                await page.reload()
 
-            await self.pool.put((browser, context, page))
+    async def release_browser(self, browser_instance):
+        """Brauzerni qaytarishda sahifani qayta tiklash"""
+        browser, context, page = browser_instance
+        try:
+            pages = context.pages
+            for p in pages[1:]:  
+                await p.close()
+
+            await self._navigate_initial_page(page)
+            
         except Exception as e:
-            logger.error(f"❌ Error creating browser instance: {e}")
+            logger.error(f"⚠️ Sahifani tiklashda xato: {e}")
+            await page.close()
+            page = await context.new_page()
+            await self._navigate_initial_page(page)
+            
+        finally:
+            await self.pool.put((browser, context, page))
 
     async def get_browser(self):
         """Pool dan mavjud brauzerni qaytaradi yoki kutib turadi"""
@@ -66,18 +109,6 @@ class BrowserPool:
         browser_instance = await self.pool.get()
         return browser_instance
 
-    async def release_browser(self, browser_instance):
-        """Brauzerni qayta ishlashga tayyorlab pool ga qaytaradi"""
-        browser, context, page = browser_instance
-        try:
-            await page.goto("https://sssinstagram.com/ru/story-saver")
-            await page.wait_for_load_state("domcontentloaded")
-        except Exception as e:
-            logger.warning(f"⚠️ Error resetting page: {e}")
-            await page.close()
-            page = await context.new_page()
-
-        await self.pool.put((browser, context, page))
 
     async def close_all(self):
         """Barcha brauzerlarni yopadi"""
@@ -91,8 +122,9 @@ class BrowserPool:
             await self.playwright.stop()
             self.playwright = None
 
-async def get_instagram_post_images(post_url, caption, browser_pool):
-    """Instagram postdan rasmlar olish funksiyasi"""
+
+async def get_instagram_story_urls(username, browser_pool):
+    """ Instagram storylarini olish """
     try:
         browser_instance = await browser_pool.get_browser()
         if not browser_instance:
@@ -100,64 +132,28 @@ async def get_instagram_post_images(post_url, caption, browser_pool):
             return {"error": True, "message": "Browser acquisition failed"}
 
         browser, context, page = browser_instance
-        print(page, "Page Page")
-        # try:
-        #     await page.goto(post_url, timeout=15000)
-        # except PlaywrightTimeoutError:
-        #     logger.error("❌ Timeout loading the page")
-        #     await browser_pool.release_browser(browser_instance)
-        #     return {"error": True, "message": "Timeout loading page"}
 
-        path = urlparse(post_url).path
-        shortcode = path.strip("/").split("/")[-1]
+        await page.fill(".form__input", username)
+        await page.click(".form__submit")
 
-        try:
-            await page.wait_for_selector("article", timeout=15000)
-        except PlaywrightTimeoutError:
-            logger.error("❌ 'article' element not found")
-            await browser_pool.release_browser(browser_instance)
-            return {"error": True, "message": "Post content not found"}
+        await page.wait_for_selector(".button__download", timeout=10000)
 
-        image_urls = set()
-        await page.mouse.click(10, 10)
-        await asyncio.sleep(0.5)
+        story_links = [await el.get_attribute("href") for el in await page.locator(".button__download").all()]
+        print(len(story_links), 'len')
+        if not story_links:
+            return {"error": True, "message": "Invalid response from the server"}
 
-        while True:
-            images = await page.locator("article ._aagv img").all()
-            for img in images:
-                url = await img.get_attribute("src")
-                if url:
-                    image_urls.add(url)
-
-            next_button = page.locator("button[aria-label='Next']")
-            if await next_button.count() > 0:
-                prev_count = len(image_urls)
-                await next_button.click()
-                await asyncio.sleep(0.5)
-                if len(image_urls) == prev_count:
-                    break
-            else:
-                break
-
-        if not image_urls:
-            logger.error("❌ No image URLs found")
-            await browser_pool.release_browser(browser_instance)
-            return {"error": True, "message": "No images found"}
-
-        await browser_pool.release_browser(browser_instance)
         return {
             "error": False,
             "hosting": "instagram",
-            "type": "album" if len(image_urls) > 1 else "image",
-            "shortcode": shortcode,
-            "caption": caption,
-            "medias": [{"type": "image", "download_url": url, "thumb": url} for url in image_urls]
+            "type": "stories",
+            "username": username,
+            "medias": [{"download_url": url, "type": "image" if url.lower().endswith(".jpg") else "video"} for url in story_links]
         }
     except Exception as e:
-        logger.error(f"❌ Unknown error: {str(e)}")
-        return {"error": True, "message": "Internal server error"}
+        return {"error": True, "message": f"Error: {e}"}
 
-
+# from .proxy_route import get_proxy_config
 browser_pool_ref = None
 
 async def init_browser_pool():
@@ -167,26 +163,36 @@ async def init_browser_pool():
         browser_pool = browser_pool_ref()
         if browser_pool is not None:
             return browser_pool
-
-    proxy = await get_proxy_config()
-    browser_pool = BrowserPool(pool_size=10, proxy_config=proxy)
+    # proxy = await get_proxy_config()
+    proxy = {'server': 'http://23.142.16.211:2952', 'username': 'javokhir', 'password': 'mvcs42yr5aj'}
+    browser_pool = BrowserPool(pool_size=1, proxy_config=proxy)
     await browser_pool.initialize()
 
     browser_pool_ref = weakref.ref(browser_pool)
     return browser_pool
 # FastAPI marshruti
-checker_router = APIRouter()
+# checker_router = APIRouter()
 
-@checker_router.get("/checker/")
-async def checker(url: str):
-    logger.info("Checker endpoint called ✅✅✅✅✅")
-    print("Checker endpoint called ✅✅✅✅✅")
+# @checker_router.get("/checker/")
+# async def checker(url: str):
+#     logger.info("Checker endpoint called ✅✅✅✅✅")
+#     pool = await init_browser_pool()
+#     print(pool, "Poll Exist")
+#     data = await get_instagram_story_urls(
+#         username=url,
+#         browser_pool=pool
+#     )
+#     logger.info(f"Response data: {data}")
+#     return data
+
+async def check_hand(url):
     pool = await init_browser_pool()
-    print(pool, "Pool")
-    data = await get_instagram_post_images(
-        post_url=url,
-        caption="salom",
-        browser_pool=pool
-    )
+    # data = await get_instagram_post_images(post_url=url, caption="salom", browser_pool=pool)
+    data = await get_instagram_story_urls(url, pool)
     logger.info(f"Response data: {data}")
     return data
+
+if __name__ == "__main__":
+    url = "https://www.instagram.com/p/DHgWbewsTwH/?utm_source=ig_web_copy_link"
+    data = asyncio.run(check_hand(url))
+    print(data)
