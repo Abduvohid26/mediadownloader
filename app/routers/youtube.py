@@ -238,6 +238,10 @@ async def get_yt_data(url: str):
         "format": "best[ext=mp4]",
 
     }
+    PROXY_URL = await get_proxy_config()
+    if PROXY_URL:
+        ydl_opts["proxy"] = f"http://{PROXY_URL['username']}:{PROXY_URL['password']}@{PROXY_URL['server'].replace('http://', '')}"
+
     loop = asyncio.get_running_loop()
     
     try:
