@@ -26,7 +26,7 @@ app = FastAPI()
 # app.include_router(checker_router)
 app.include_router(insta_router)
 app.include_router(proxies)
-# app.include_router(yt_router)
+app.include_router(yt_router)
 app.include_router(sender)
 app.include_router(check_url)
 # DB sessiyasini olish

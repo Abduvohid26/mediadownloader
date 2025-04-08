@@ -7,7 +7,7 @@ yt_router = APIRouter()
 @yt_router.get("/youtube/media/")
 async def yt_media(yt_url: str):
     try:
-        data = await get_yt_data(video_url=yt_url.strip())
+        data = await get_yt_data(url=yt_url.strip())
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
         return data
