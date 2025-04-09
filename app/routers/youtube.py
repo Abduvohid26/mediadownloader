@@ -217,13 +217,16 @@ async def get_video(info, url):
     ]
 
     medias.extend(new_data)
+    thumbnails = info.get("thumbnails", [])
+    thumbnail = next((thumb["url"] for thumb in reversed(thumbnails) if thumb["url"].endswith(".jpg")), None)
+
 
     return {
         "error": False,
         "hosting": "youtube",
         "url": url,
         "title": info.get("title"),
-        "thumbnail": info.get("thumbnail"),
+        "thumbnail": thumbnail,
         "duration": info.get("duration"),
         "token": token,
         "medias": medias
