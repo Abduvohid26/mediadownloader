@@ -178,7 +178,6 @@ import os
 
 
 async def get_video(info, url):
-    print(info, "INFO")
     PROXY_URL = await get_proxy_config()
     token = None
     if PROXY_URL:
