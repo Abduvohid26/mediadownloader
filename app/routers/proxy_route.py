@@ -48,26 +48,27 @@ async def get_file_and_create(file: UploadFile, db: AsyncSession = Depends(get_d
 
 
 async def get_proxy_config():
-    """Bazadan tasodifiy proksi olish. Yo‘q bo‘lsa, None qaytaradi."""
     async with SessionLocal() as db:
         try:
             result = await db.execute(
                 select(ProxyServers)
                 .filter(ProxyServers.instagram == True)
-                .order_by(func.random())
-                .limit(1)
+                .order_by(func.random())  
+                .limit(1)  
             )
             _proxy = result.scalars().first()
 
-            if not _proxy:
-                print("No proxy servers available.")
-                return None  # ❗ Agar proksi yo‘q bo‘lsa, None qaytaradi.
+            if not _proxy:  
+                print("No proxy servers available in the database.")
+                return None
 
-            return {
+            proxy_config = {    
                 "server": f"http://{_proxy.proxy}",
                 "username": _proxy.username,
                 "password": _proxy.password
             }
+            return proxy_config
+        
         except SQLAlchemyError as e:
             print(f"Database error: {e}")
-            return None  # ❗ Xatolik bo‘lsa ham None qaytaradi.
+            return None
