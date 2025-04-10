@@ -7,16 +7,14 @@ from .cashe import redis_client
 import os
 
 async def get_video(info, url, proxy_url=None):
-    # Proxy konfiguratsiyasini olish
     proxy_config = await get_proxy_config()
     token = None
 
     if proxy_config:
         token = os.urandom(16).hex()
 
-    # Faqat "https://r" bilan boshlanadigan formatlarni olish
     formats = info.get("formats", [])
-    new_datas = [f for f in formats if f.get("url", "").startswith("https://r")]
+    # new_datas = [f for f in formats if f.get("url", "").startswith("https://r")]
 
     # **Birinchi obyekt** — `info` ichidan olinadi
     medias = [{
@@ -34,7 +32,7 @@ async def get_video(info, url, proxy_url=None):
             "ext": data.get("ext"),
             "url": data.get("url")  # **`info.get("url")` emas!**
         }
-        for data in new_datas
+        for data in formats
     ])
 
     return {
