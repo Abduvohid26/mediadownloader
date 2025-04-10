@@ -50,7 +50,7 @@ async def get_video(info, url, proxy_url=None):
 
 async def get_yt_data(url: str):
     ydl_opts = {
-        "quit": False,
+        "quit": True,
         "format": "best[ext=mp4]",
     }
     proxy_config = await get_proxy_config()
