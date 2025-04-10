@@ -20,7 +20,6 @@ async def get_video(info, url, proxy_url=None):
         "url": info.get("url")
     }]
 
-    # **Qolgan obyektlar** — `formats` ichidan olinadi
     medias.extend([
         {
             "quality": f"{data.get('format', '').split()[-1]}",
@@ -31,12 +30,20 @@ async def get_video(info, url, proxy_url=None):
         for data in formats if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]
     ])
 
+    thumbnail = info.get("thumbnail", "")
+
+    if not thumbnail.endswith(".jpg") and "thumbnails" in info:
+        for thumb in reversed(info["thumbnails"]): 
+            if thumb.get("url", "").endswith(".jpg"):
+                thumbnail = thumb["url"]
+                break
+
     return {
         "error": False,
         "hosting": "youtube",
         "url": url,
         "title": info.get("title"),
-        "thumbnail": info.get("thumbnail"),
+        "thumbnail": thumbnail,
         "duration": info.get("duration"),
         "token": token,
         "medias": medias
