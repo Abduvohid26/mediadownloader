@@ -6,89 +6,13 @@ from .proxy_route import get_proxy_config
 from .cashe import redis_client
 import os
 
-# async def get_video(info, url, proxy_url=None):
-#     proxy_config = await get_proxy_config()
-#     token = os.urandom(16).hex() if proxy_config else None
-
-#     formats = info.get("formats", [])
-
-#     # **Birinchi obyekt** — `info` ichidan olinadi
-#     medias = [{
-#         "quality": f"{info.get('format', '').split(' ')[-1]}",
-#         "type": "video",
-#         "ext": "mp4",
-#         "url": info.get("url")
-#     }]
-
-#     # **Qolgan obyektlar** — `formats` ichidan olinadi
-#     medias.extend([
-#         {
-#             "quality": f"{data.get('format', '').split()[-1]}",
-#             "type": "video" if data.get("ext") == "mp4" else "audio",
-#             "ext": data.get("ext"),
-#             "url": data.get("url")
-#         }
-#         for data in formats if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]
-#     ])
-
-#     return {
-#         "error": False,
-#         "hosting": "youtube",
-#         "url": url,
-#         "title": info.get("title"),
-#         "thumbnail": info.get("thumbnail"),
-#         "duration": info.get("duration"),
-#         "token": token,
-#         "medias": medias
-#     }
-
-# async def get_yt_data(url: str):
-#     ydl_opts = {
-#         "quiet": True,  # **Ortacha holatda konsol chiqishini kamaytiradi**
-#         "no_warnings": True,  # **Ogohlantirishlarni o‘chiradi**
-#         "format": "best[ext=mp4]",
-#         "noplaylist": True,  # **Faqat bitta video yuklanishini ta’minlaydi**
-#     }
-
-#     proxy_config = await get_proxy_config()
-#     proxy_url = None
-#     if proxy_config:
-#         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-#         ydl_opts["proxy"] = proxy_url
-
-#     loop = asyncio.get_running_loop()
-#     try:
-#         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-#             info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False)) 
-#             data = await get_video(info, url, proxy_url)
-#             return data
-#     except Exception as e:
-#         print(f"Xatolik yuz berdi: {e}")
-#         return {"error": True, "message": "Invalid response from the server"}
-
-
-async def fetch_info(url, proxy_url):
-    """ YouTube ma’lumotlarini olish """
-    ydl_opts = {
-        "quiet": True,
-        "no_warnings": True,
-        "noplaylist": True,
-        "skip_download": True,  # **Video yuklashni o‘chiradi**
-        "extract_flat": True,
-    }
-
-    if proxy_url:
-        ydl_opts["proxy"] = proxy_url["server"]  # **Proksi mavjud bo‘lsa, qo‘shiladi.**
-
-    loop = asyncio.get_running_loop()
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        return await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
-
 async def get_video(info, url, proxy_url=None):
-    """Video formatlarini qaytarish"""
-    token = os.urandom(16).hex() if proxy_url else None
+    proxy_config = await get_proxy_config()
+    token = os.urandom(16).hex() if proxy_config else None
+
     formats = info.get("formats", [])
 
+    # **Birinchi obyekt** — `info` ichidan olinadi
     medias = [{
         "quality": f"{info.get('format', '').split(' ')[-1]}",
         "type": "video",
@@ -96,6 +20,7 @@ async def get_video(info, url, proxy_url=None):
         "url": info.get("url")
     }]
 
+    # **Qolgan obyektlar** — `formats` ichidan olinadi
     medias.extend([
         {
             "quality": f"{data.get('format', '').split()[-1]}",
@@ -103,7 +28,7 @@ async def get_video(info, url, proxy_url=None):
             "ext": data.get("ext"),
             "url": data.get("url")
         }
-        for data in formats
+        for data in formats if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]
     ])
 
     return {
@@ -118,9 +43,25 @@ async def get_video(info, url, proxy_url=None):
     }
 
 async def get_yt_data(url: str):
-    """ Asinxron ma’lumot olish va qayta ishlash """
-    semaphore = asyncio.Semaphore(5)  
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,  
+        "format": "best[ext=mp4]",
+        "noplaylist": True, 
+    }
 
-    async with semaphore:
-        proxy_url, info = await asyncio.gather(get_proxy_config(), fetch_info(url, None))
-        return await get_video(info, url, proxy_url)
+    proxy_config = await get_proxy_config()
+    proxy_url = None
+    if proxy_config:
+        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+        ydl_opts["proxy"] = proxy_url
+
+    loop = asyncio.get_running_loop()
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False)) 
+            data = await get_video(info, url, proxy_url)
+            return data
+    except Exception as e:
+        print(f"Xatolik yuz berdi: {e}")
+        return {"error": True, "message": "Invalid response from the server"}

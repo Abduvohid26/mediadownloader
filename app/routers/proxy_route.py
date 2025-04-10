@@ -67,6 +67,7 @@ async def get_proxy_config():
                 "username": _proxy.username,
                 "password": _proxy.password
             }
+            print("Salom", proxy_config)
             return proxy_config
         
         except SQLAlchemyError as e:
