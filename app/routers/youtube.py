@@ -2,14 +2,16 @@ import asyncio
 from playwright.async_api import async_playwright
 import yt_dlp
 import httpx
-from .proxy_route import get_proxy_config
+from .proxy_route import get_proxy_config, proxy_off
 from .cashe import redis_client
 import os
+import redis
 
 async def get_video(info, url, proxy_url=None):
     proxy_config = await get_proxy_config()
     token = os.urandom(16).hex() if proxy_config else None
-
+    redis_client.set(token, proxy_url)
+    print(redis_client.get(token), "VALUES")
     formats = info.get("formats", [])
 
     # **Birinchi obyekt** — `info` ichidan olinadi
@@ -58,6 +60,7 @@ async def get_yt_data(url: str):
     }
 
     proxy_config = await get_proxy_config()
+    print(proxy_config)
     proxy_url = None
     if proxy_config:
         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
@@ -69,6 +72,12 @@ async def get_yt_data(url: str):
             info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False)) 
             data = await get_video(info, url, proxy_url)
             return data
+    except yt_dlp.utils.ExtractorError as e:
+        error_msg = str(e)
+        if "Sign in to confirm you’re not a bot" in error_msg:
+            await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+            return await get_yt_data(url)
+        return {"error": True, "message": "Invalid response from the server"}
     except Exception as e:
         print(f"Xatolik yuz berdi: {e}")
         return {"error": True, "message": "Invalid response from the server"}

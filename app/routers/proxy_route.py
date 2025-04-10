@@ -1,12 +1,13 @@
-from .insta import download_instagram_media, get_instagram_story_urls
 from schema.schema import InstaSchema, InstaStory
-from fastapi import APIRouter, HTTPException, Form, UploadFile, Depends
+from fastapi import APIRouter, UploadFile, Depends
 from models.user import ProxyServers
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import SessionLocal
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import update, delete
+
 
 proxies = APIRouter()
     
@@ -73,3 +74,30 @@ async def get_proxy_config():
         except SQLAlchemyError as e:
             print(f"Database error: {e}")
             return None
+
+async def proxy_off(proxy_ip: str, action: str):
+    async with SessionLocal() as db:
+        try:
+            result = await db.execute(
+                select(ProxyServers).filter(ProxyServers.proxy == proxy_ip)
+            )
+            proxy = result.scalars().first()
+
+            if not proxy:
+                print(f"Proxy {proxy_ip} topilmadi.")
+                return
+
+            # Berilgan action-ni False qilish
+            if action in ["instagram", "youtube", "tiktok"]:
+                setattr(proxy, action, False)
+                await db.commit()
+
+            # Agar barcha maydonlar False bo‘lsa, proxy-ni o‘chirish
+            if not proxy.instagram and not proxy.youtube and not proxy.tiktok:
+                await db.execute(delete(ProxyServers).where(ProxyServers.proxy == proxy_ip))
+                await db.commit()
+                print(f"Proxy {proxy_ip} bazadan o‘chirildi.")
+
+        except SQLAlchemyError as e:
+            print(f"Bazada xatolik yuz berdi: {e}")
+            await db.rollback()
