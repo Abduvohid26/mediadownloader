@@ -177,48 +177,131 @@ import os
 
 
 
+# async def get_video(info, url):
+#     PROXY_URL = await get_proxy_config()
+#     token = None
+#     if PROXY_URL:
+#         token = os.urandom(16).hex()
+#         proxy_url = f"http://{PROXY_URL['username']}:{PROXY_URL['password']}@{PROXY_URL['server'].replace('http://', '')}"
+#         redis_client.set(token, proxy_url, ex=60 * 60)
+#         print(redis_client.get(token).decode(), "token value")
+#     else:
+#         pass
+
+#     formats = info.get("formats", [])
+
+#     audio_data = next((f for f in formats if f.get("url", "").startswith("https://r") and "audio" in f.get("format", "").lower()), None)
+
+#     new_datas = [f for f in formats if f.get("url", "").startswith("https://r")]
+
+#     medias = [
+#         {
+#             "quality": f"mp4 {info.get('format', '').split(' ')[-1]}",
+#             "video_ext": "mp4",
+#             "audio_ext": "m4a" if audio_data else None,
+#             "video_url": info.get("url"),
+#             "audio_url": audio_data["url"] if audio_data else None,
+#         }
+#     ]
+
+#     new_data = [
+#         {
+#             "quality": f"{data.get('format', '').split(' ')[-1]}",
+#             "video_ext": "mp4" if data.get("ext") == "mp4" else None,
+#             "audio_ext": data.get("ext") if data.get("ext") in ["webm", "m4a"] else None,
+#             "video_url": data.get("url") if data.get("ext") == "mp4" else None,
+#             "audio_url": data.get("url") if data.get("ext") in ["webm", "m4a"] else None
+#         }
+#         for data in new_datas
+#     ]
+
+#     medias.extend(new_data)
+#     thumbnails = info.get("thumbnails", [])
+#     thumbnail = next((thumb["url"] for thumb in reversed(thumbnails) if thumb["url"].endswith(".jpg")), None)
+
+
+#     return {
+#         "error": False,
+#         "hosting": "youtube",
+#         "url": url,
+#         "title": info.get("title"),
+#         "thumbnail": thumbnail,
+#         "duration": info.get("duration"),
+#         "token": token,
+#         "medias": medias
+#     }
+
+
+
+
+# async def get_yt_data(url: str):
+#     ydl_opts = {
+#         "quit": False,
+#         "format": "best[ext=mp4]",
+
+#     }
+#     PROXY_URL = await get_proxy_config()
+#     if PROXY_URL:
+#         ydl_opts["proxy"] = f"http://{PROXY_URL['username']}:{PROXY_URL['password']}@{PROXY_URL['server'].replace('http://', '')}"
+
+#     loop = asyncio.get_running_loop()
+    
+#     try:
+#         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#             info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+            
+#             data = await get_video(info, url)
+#             return data
+#     except Exception as e:
+#         print(f"Xatolik Yuz berdi: {e}")
+#         return {"error": True, "message": "Invalid response from the server"}
+    
+
 async def get_video(info, url):
-    PROXY_URL = await get_proxy_config()
+    # Proxy konfiguratsiyasini asinxron tarzda olish
+    proxy_config = await get_proxy_config()
     token = None
-    if PROXY_URL:
+
+    if proxy_config:
         token = os.urandom(16).hex()
-        proxy_url = f"http://{PROXY_URL['username']}:{PROXY_URL['password']}@{PROXY_URL['server'].replace('http://', '')}"
+        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
         redis_client.set(token, proxy_url, ex=60 * 60)
         print(redis_client.get(token).decode(), "token value")
-    else:
-        pass
 
     formats = info.get("formats", [])
-
-    audio_data = next((f for f in formats if f.get("url", "").startswith("https://r") and "audio" in f.get("format", "").lower()), None)
-
+    audio_data = next(
+        (f for f in formats if f.get("url", "").startswith("https://r") and "audio" in f.get("format", "").lower()),
+        None
+    )
     new_datas = [f for f in formats if f.get("url", "").startswith("https://r")]
 
-    medias = [
-        {
-            "quality": f"mp4 {info.get('format', '').split(' ')[-1]}",
-            "video_ext": "mp4",
-            "audio_ext": "m4a" if audio_data else None,
-            "video_url": info.get("url"),
-            "audio_url": audio_data["url"] if audio_data else None,
-        }
-    ]
+    # Asosiy media ma'lumotlari
+    main_quality = info.get("format", "").split(' ')[-1]
+    medias = [{
+        "quality": f"mp4 {main_quality}",
+        "video_ext": "mp4",
+        "audio_ext": "m4a" if audio_data else None,
+        "video_url": info.get("url"),
+        "audio_url": audio_data["url"] if audio_data else None,
+    }]
 
-    new_data = [
-        {
-            "quality": f"{data.get('format', '').split(' ')[-1]}",
-            "video_ext": "mp4" if data.get("ext") == "mp4" else None,
-            "audio_ext": data.get("ext") if data.get("ext") in ["webm", "m4a"] else None,
-            "video_url": data.get("url") if data.get("ext") == "mp4" else None,
-            "audio_url": data.get("url") if data.get("ext") in ["webm", "m4a"] else None
-        }
-        for data in new_datas
-    ]
+    new_data = []
+    for data in new_datas:
+        data_quality = data.get("format", "").split(' ')[-1]
+        ext = data.get("ext")
+        new_data.append({
+            "quality": data_quality,
+            "video_ext": "mp4" if ext == "mp4" else None,
+            "audio_ext": ext if ext in ["webm", "m4a"] else None,
+            "video_url": data.get("url") if ext == "mp4" else None,
+            "audio_url": data.get("url") if ext in ["webm", "m4a"] else None,
+        })
 
     medias.extend(new_data)
+
+    # Thumbnail ro'yxatidan so'nggi .jpg URL ni tanlash
     thumbnails = info.get("thumbnails", [])
     thumbnail = next((thumb["url"] for thumb in reversed(thumbnails) if thumb["url"].endswith(".jpg")), None)
-
 
     return {
         "error": False,
@@ -232,27 +315,22 @@ async def get_video(info, url):
     }
 
 
-
-
 async def get_yt_data(url: str):
     ydl_opts = {
         "quit": False,
         "format": "best[ext=mp4]",
-
     }
-    PROXY_URL = await get_proxy_config()
-    if PROXY_URL:
-        ydl_opts["proxy"] = f"http://{PROXY_URL['username']}:{PROXY_URL['password']}@{PROXY_URL['server'].replace('http://', '')}"
+    proxy_config = await get_proxy_config()
+    if proxy_config:
+        ydl_opts["proxy"] = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
 
     loop = asyncio.get_running_loop()
-    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # yt_dlp.extract_info ni asinxron tarzda bajarish
             info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
-            
             data = await get_video(info, url)
             return data
     except Exception as e:
         print(f"Xatolik Yuz berdi: {e}")
         return {"error": True, "message": "Invalid response from the server"}
-    
