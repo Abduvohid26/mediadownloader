@@ -10,7 +10,7 @@ async def check(proxy_token: str):
      proxy_url = redis_client.get(proxy_token)
      print(proxy_url, "proxy_url")
      if proxy_url is None:
-         return {"error": True, "message": "Token invalid or expired"}
+         return {"error": True, "message": f"Token invalid or expired {proxy_url}"}
      return {"proxy_url": proxy_url.decode()}
 
 
