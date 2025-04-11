@@ -169,6 +169,7 @@ async def download_instagram_media(url, proxy_config):
 
     except yt_dlp.utils.DownloadError as e:
         error_message = str(e)
+
         if "There is no video in this post" in error_message:
             print("Get media2")
             return await get_instagram_story_urls(
@@ -193,86 +194,58 @@ async def download_instagram_media(url, proxy_config):
 
 
 
+import asyncio
 
 
+async def get_instagram_story_urls_self(url):
+    try:
+        async with async_playwright() as playwright:
+            options = {
+                "headless": False,  # Ko'rinadigan rejimda ishga tushiramiz
+                "args": ["--no-sandbox", "--disable-setuid-sandbox"],
+            }
+            browser = await playwright.chromium.launch(**options)
+            page = await browser.new_page()
+            await page.goto(url, timeout=60000)
 
+            await page.wait_for_selector("video", timeout=10000)
 
+            video_elements = await page.query_selector_all("video")
+            video_urls = [await video.get_attribute("src") for video in video_elements]
 
+            await browser.close()
+            return {"error": False, "video_urls": video_urls}
 
+    except Exception as e:
+        print("Error get_instagram_story_urls_self:", e)
+        return {"error": True, "message": "Invalid response from the server"}
 
+async def main():
+    url = "https://www.instagram.com/p/DHob-ZCufAH/?utm_source=ig_web_copy_link"
+    result = await get_instagram_story_urls_self(url)
+    print(result)
 
-
-
-
-
+import asyncio
+asyncio.run(main())
 #
-# async def get_instagram_post_images(post_url, caption, browser_pool):
-#     try:
-#         browser_instance = await browser_pool.get_browser()
-#         if not browser_instance:
-#             logger.error("❌ Failed to acquire browser")
-#             return {"error": True, "message": "Browser acquisition failed"}
+# if global_browser["browser"] is None:
+#     print("🔄 Yangi brauzer ishga tushdi...")
+#     global_browser["playwright"] = await async_playwright().start()
 #
-#         browser, context, page = browser_instance
+#     options = {
+#         "headless": True,
+#         "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+#     }
+#     if proxy_config:
+#         options["proxy"] = proxy_config
 #
+#     global_browser["browser"] = await global_browser["playwright"].chromium.launch(**options)
+#     global_browser["context"] = await global_browser["browser"].new_context()
+#     global_browser["page"] = await global_browser["context"].new_page()
 #
-#         try:
-#             page = await browser.new_page()
-#         except Exception as e:
-#             logger.error(msg=f"Page yaratishda xatolik:: {e}")
-#             return {"error": True, "message": "Invalid response from the server"}
-#
-#         try:
-#             await page.goto(post_url, timeout=15000)
-#         except PlaywrightTimeoutError:
-#             logger.error(msg=f"⏳ Sahifani yuklash muddati tugadi")
-#             return {"error": True, "message": "Invalid response from the server"}
-#
-#
-#
-#
-#         path = urlparse(post_url).path
-#         shortcode = path.strip("/").split("/")[-1]
-#         image_urls = set()
-#
-#         await page.mouse.click(10, 10)
-#         await page.wait_for_timeout(5000)
-#
-#         while True:
-#             # await page.fill(".form__input", post_url)
-#             # await page.click(".form__submit")
-#             # await page.wait_for_selector(".button__download", timeout=5000)
-#
-#             images = await page.locator("article ._aagv img").all()
-#             for img in images:
-#                 url = await img.get_attribute("src")
-#                 if url:
-#                     image_urls.add(url)
-#
-#             next_button = page.locator("button[aria-label='Next']")
-#             if await next_button.count() > 0:
-#                 prev_count = len(image_urls)
-#                 await next_button.click()
-#                 await asyncio.sleep(0.5)
-#                 if len(image_urls) == prev_count:
-#                     break
-#             else:
-#                 break
-#
-#         if not image_urls:
-#             logger.error("❌ No image URLs found")
-#             await browser_pool.release_browser(browser_instance)
-#             return {"error": True, "message": "No images found"}
-#
-#         await browser_pool.release_browser(browser_instance)
-#         return {
-#             "error": False,
-#             "hosting": "instagram",
-#             "type": "album" if len(image_urls) > 1 else "image",
-#             "shortcode": shortcode,
-#             "caption": caption,
-#             "medias": [{"type": "image", "download_url": url, "thumb": url} for url in image_urls]
-#         }
-#     except Exception as e:
-#         logger.error(f"❌ Unknown error: {str(e)}")
-#         return {"error": True, "message": "Internal server error"}
+#     await global_browser["page"].goto("https://sssinstagram.com/ru/story-saver", timeout=10000)
+#     await global_browser["page"].wait_for_load_state("domcontentloaded")
+# return (global_browser["browser"],
+#         global_browser["context"],
+#         global_browser["page"],
+#         global_browser["playwright"])

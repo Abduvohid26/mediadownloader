@@ -38,7 +38,7 @@ async def get_video(info, url, proxy_url=None):
         for thumb in reversed(info["thumbnails"]): 
             if thumb.get("url", "").endswith(".jpg"):
                 thumbnail = thumb["url"]
-                break
+                break   
 
     return {
         "error": False,
@@ -81,3 +81,22 @@ async def get_yt_data(url: str):
     except Exception as e:
         print(f"Xatolik yuz berdi: {e}")
         return {"error": True, "message": "Invalid response from the server"}
+    
+
+
+async def get_youtube_video_info(url: str):
+    proxy = await get_proxy_config()
+    
+    def extract_info():
+        options = {
+            'quiet': True,
+            'proxy': proxy,
+            'extract_flat': False,
+        }
+        with yt_dlp.YoutubeDL(options) as ydl:
+            return ydl.extract_info(url, download=False)
+
+    loop = asyncio.get_event_loop()
+    video_info = await loop.run_in_executor(None, extract_info)
+    
+    return video_info
