@@ -60,7 +60,6 @@ async def get_yt_data(url: str):
     }
 
     proxy_config = await get_proxy_config()
-    print(proxy_config)
     proxy_url = None
     if proxy_config:
         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
@@ -69,7 +68,8 @@ async def get_yt_data(url: str):
     loop = asyncio.get_running_loop()
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False)) 
+            info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
+            print(info, "Data")
             data = await get_video(info, url, proxy_url)
             return data
     except yt_dlp.utils.ExtractorError as e:
@@ -84,20 +84,68 @@ async def get_yt_data(url: str):
     
 
 
-async def get_youtube_video_info(url: str):
-    proxy = await get_proxy_config()
-    # 
-    def extract_info():
-        options = {
-            'quiet': True,
-            'extract_flat': False,
-        }
-        # if proxy:
-        #     options['proxy'] = f"http://{proxy['username']}:{proxy['password']}@{proxy['server'].replace('http://', '')}"
-        with yt_dlp.YoutubeDL(options) as ydl:
-            return ydl.extract_info(url, download=False)
+# async def get_youtube_video_info(url: str):
+#     proxy = await get_proxy_config()
+#     #
+#     def extract_info():
+#         options = {
+#             'quiet': True,
+#             'extract_flat': False,
+#         }
+#         # if proxy:
+#         #     options['proxy'] = f"http://{proxy['username']}:{proxy['password']}@{proxy['server'].replace('http://', '')}"
+#         with yt_dlp.YoutubeDL(options) as ydl:
+#             return ydl.extract_info(url, download=False)
+#
+#     loop = asyncio.get_event_loop()
+#     video_info = await loop.run_in_executor(None, extract_info)
+#
+#     return video_info
 
-    loop = asyncio.get_event_loop()
-    video_info = await loop.run_in_executor(None, extract_info)
-    
-    return video_info
+# async def get_youtube_video_info(url):
+#     loop = asyncio.get_running_loop()
+#     proxy_config = await get_proxy_config()
+#     try:
+#         # Async wrapper for yt-dlp extraction
+#         async def extract_info():
+#             def sync_extract():
+#                 ydl_opts = {
+#                     "quiet": True,
+#                     "no_warnings": True,
+#                     "format": "best[ext=mp4]",
+#                     "noplaylist": True,
+#                 }
+#                 if proxy_config:
+#                     proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+#                     ydl_opts['proxy'] = proxy_url
+#
+#                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#                     return ydl.extract_info(url, download=False)
+#
+#             return await loop.run_in_executor(None, sync_extract)
+#
+#         info = await extract_info()
+#         return info.get("url")
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         return {"error": True, "message": f"Invalid response from the server: {e}"}
+#
+
+
+async def get_youtube_video_info(url):
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "format": "best[ext=mp4]",
+        "noplaylist": True,
+    }
+
+    try:
+        loop = asyncio.get_running_loop()
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+        return info.get("url")
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"error": True, "message": f"Invalid response from the server: {e}"}
+
