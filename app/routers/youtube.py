@@ -133,12 +133,16 @@ async def get_yt_data(url: str):
 
 
 async def get_youtube_video_info(url):
+    proxy_config = await get_proxy_config()
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
         "format": "best[ext=mp4]",
         "noplaylist": True,
     }
+    if proxy_config:
+        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+        ydl_opts['proxy'] = proxy_url
 
     try:
         loop = asyncio.get_running_loop()
