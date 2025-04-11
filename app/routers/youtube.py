@@ -90,9 +90,10 @@ async def get_youtube_video_info(url: str):
     def extract_info():
         options = {
             'quiet': True,
-            'proxy': proxy,
             'extract_flat': False,
         }
+        if proxy:
+            options['proxy'] = f"http://{proxy['username']}:{proxy['password']}@{proxy['server'].replace('http://', '')}"
         with yt_dlp.YoutubeDL(options) as ydl:
             return ydl.extract_info(url, download=False)
 
