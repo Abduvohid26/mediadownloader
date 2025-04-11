@@ -78,7 +78,6 @@ async def get_yt_data(url: str):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # `asyncio.to_thread` yordamida sinxron kodni asenkron ishlatish
             info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
-            print(info, "Data")
             data = await get_video(info, url, proxy_url)
             return data
     except yt_dlp.utils.ExtractorError as e:
