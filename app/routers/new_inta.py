@@ -185,14 +185,14 @@ async def init_browser_pool():
 #     logger.info(f"Response data: {data}")
 #     return data
 
-async def check_hand(url):
-    pool = await init_browser_pool()
-    # data = await get_instagram_post_images(post_url=url, caption="salom", browser_pool=pool)
-    data = await get_instagram_story_urls(url, pool)
-    logger.info(f"Response data: {data}")
-    return data
+# async def check_hand(url):
+#     pool = await init_browser_pool()
+#     # data = await get_instagram_post_images(post_url=url, caption="salom", browser_pool=pool)
+#     data = await get_instagram_story_urls(url, pool)
+#     logger.info(f"Response data: {data}")
+#     return data
 
-if __name__ == "__main__":
-    url = "https://www.instagram.com/p/DHgWbewsTwH/?utm_source=ig_web_copy_link"
-    data = asyncio.run(check_hand(url))
-    print(data)
+# if __name__ == "__main__":
+#     url = "https://www.instagram.com/p/DHgWbewsTwH/?utm_source=ig_web_copy_link"
+#     data = asyncio.run(check_hand(url))
+#     print(data)

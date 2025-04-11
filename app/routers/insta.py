@@ -220,13 +220,13 @@ async def get_instagram_story_urls_self(url):
         print("Error get_instagram_story_urls_self:", e)
         return {"error": True, "message": "Invalid response from the server"}
 
-async def main():
-    url = "https://www.instagram.com/p/DHob-ZCufAH/?utm_source=ig_web_copy_link"
-    result = await get_instagram_story_urls_self(url)
-    print(result)
+# async def main():
+#     url = "https://www.instagram.com/p/DHob-ZCufAH/?utm_source=ig_web_copy_link"
+#     result = await get_instagram_story_urls_self(url)
+#     print(result)
 
-import asyncio
-asyncio.run(main())
+# import asyncio
+# asyncio.run(main())
 #
 # if global_browser["browser"] is None:
 #     print("🔄 Yangi brauzer ishga tushdi...")
