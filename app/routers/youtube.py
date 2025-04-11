@@ -159,7 +159,7 @@ async def get_yt_data(url: str):
                 return data
         except yt_dlp.utils.ExtractorError as e:
             error_msg = str(e)
-            if "Sign in to confirm you’re not a bot" in error_msg:
+            if "Sign in to confirm you’re not a bot" in error_msg or "blocked in your country" in error_msg:
                 # Proxyni faqat "Sign in to confirm you’re not a bot" xatosida ishlatish
                 if proxy_config:
                     proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
