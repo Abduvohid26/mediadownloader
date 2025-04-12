@@ -7,6 +7,10 @@ import httpx
 from .proxy_route import get_proxy_config, proxy_off
 from .cashe import redis_client
 import os
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
 import redis
 #######################################################################
 
@@ -97,18 +101,17 @@ import redis
 # Video ma'lumotlarini olish
 from typing import Dict, Optional, List, Any
 import traceback
-
 async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Dict:
     """
-    Process YouTube video information into a structured format with error tracking.
+    YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
     """
     try:
-        proxy_config = await get_proxy_config()
-        token = os.urandom(16).hex() if proxy_config else None
-        if proxy_url:
-            redis_client.set(token, proxy_url)
+        # Agar proxy mavjud bo'lsa token hosil qilamiz va redisga yozamiz
+        token = os.urandom(16).hex() if proxy_url else None
+        # if token and proxy_url:
+        #     redis_client.set(token, proxy_url)
 
-        # Main video format processing with validation
+        # Asosiy video URL-ni olish
         main_url = info.get("url")
         if not main_url:
             raise ValueError("No URL found in video info")
@@ -120,9 +123,8 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
             "url": main_url
         }]
 
-        # Additional formats processing with error handling
-        formats = info.get("formats", [])
-        for data in formats:
+        # Qo'shimcha formatlarni qayta ishlash
+        for data in info.get("formats", []):
             try:
                 if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]:
                     medias.append({
@@ -131,24 +133,20 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
                         "ext": data.get("ext"),
                         "url": data.get("url")
                     })
-            except Exception as format_error:
-                print(f"Error processing format {data.get('format_id')}:")
-                traceback.print_exc()
+            except Exception:
+                logging.exception(f"Error processing format {data.get('format_id')}")
 
-        # Thumbnail selection with fallbacks
+        # Thumbnail tanlash: qoniqarli o'lchamga ega bo'lganini tanlaymiz
         thumbnail = None
-        if "thumbnails" in info:
-            for thumb in reversed(info["thumbnails"]):
-                try:
-                    if (thumb.get("url", "").endswith((".jpg", ".webp")) and
-                            (thumb.get("width", 0) >= 336 or
-                             thumb.get("height", 0) >= 188)):
-                        thumbnail = thumb["url"]
-                        break
-                except Exception as thumb_error:
-                    print("Error processing thumbnail:")
-                    traceback.print_exc()
-                    continue
+        for thumb in reversed(info.get("thumbnails", [])):
+            try:
+                if (thumb.get("url", "").endswith((".jpg")) and
+                        (thumb.get("width", 0) >= 336 or thumb.get("height", 0) >= 188)):
+                    thumbnail = thumb["url"]
+                    break
+            except Exception as e:
+                logging.exception("Error processing thumbnail:")
+                continue
 
         return {
             "error": False,
@@ -162,21 +160,20 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
         }
 
     except Exception as e:
-        print("CRITICAL ERROR in get_video:")
-        traceback.print_exc()
+        logging.exception("CRITICAL ERROR in get_video:")
+        error_details = str(e) or "No error details provided"
         return {
             "error": True,
-            "message": f"Video processing failed: {str(e)}",
-            "traceback": traceback.format_exc(),
+            "message": f"Video processing failed: {error_details}",
+            "traceback": traceback.format_exc() or "No traceback available",
             "original_info": info
         }
 
 
 async def get_yt_data(url: str) -> Dict:
     """
-    Fetch YouTube video data with comprehensive error tracking and retry logic.
+    YouTube video ma'lumotlarini olish: xatoliklarni kuzatish va qayta urinish mexanizmi bilan.
     """
-    # Initialize configuration
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
@@ -184,107 +181,94 @@ async def get_yt_data(url: str) -> Dict:
         "noplaylist": True,
         "skip_download": True,
         "n_connections": 4,
-        "socket-timeout": 30,
+        "socket_timeout": 30,
         "retries": 2,
     }
 
-    proxy_config = None
-    proxy_url = None
     retry_count = 0
     max_retries = 2
     last_exception = None
 
-    try:
-        proxy_config = await get_proxy_config()
-        if proxy_config:
-            proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-            ydl_opts["proxy"] = proxy_url
-            print(f"Proxy configured: {proxy_url[:15]}...")  # Log partial URL for security
+    while retry_count <= max_retries:
+        proxy_config = None
+        proxy_url = None
+        try:
+            # Har urinishdan oldin yangi proxy ma'lumotlarini olish
+            # proxy_config = await get_proxy_config()
+            # if proxy_config:
+            #     proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+            #     ydl_opts["proxy"] = proxy_url
+            #     logging.info(f"Proxy configured: {proxy_url[:15]}...")
 
-        while retry_count <= max_retries:
-            try:
-                print(f"Attempt {retry_count + 1} of {max_retries + 1}")
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = await asyncio.to_thread(
-                        lambda: ydl.extract_info(url, download=False)
-                    )
+            logging.info(f"Attempt {retry_count + 1} of {max_retries + 1}")
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
+                if not info:
+                    raise ValueError("Empty response from YouTube API")
+                logging.info("Good request")
+                return await get_video(info, url, None)
 
-                    if not info:
-                        raise ValueError("Empty response from YouTube API")
+        except yt_dlp.utils.ExtractorError as e:
+            last_exception = e
+            error_msg = str(e) or "No error details provided"
+            logging.error(f"Extractor Error [{retry_count}]: {error_msg}")
 
-                    return await get_video(info, url, proxy_url)
-
-            except yt_dlp.utils.ExtractorError as e:
-                last_exception = e
-                error_msg = str(e)
-                print(f"Extractor Error [{retry_count}]: {error_msg}")
-
-                # Check for specific errors and retry if necessary
-                if any(msg in error_msg for msg in [
-                    "Sign in to confirm you're not a bot",
-                    "blocked it in your country",
-                    "This video is unavailable"
-                ]):
-                    if proxy_config:
-                        print("Rotating proxy due to restriction...")
-                        await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
-                    retry_count += 1
-                    continue  # Retry
-
-                return {
-                    "error": True,
-                    "message": "Content extraction failed",
-                    "type": "ExtractorError",
-                    "details": error_msg,
-                    "traceback": traceback.format_exc()
-                }
-
-            except yt_dlp.utils.DownloadError as e:
-                last_exception = e
-                print(f"Download Error [{retry_count}]:")
-                traceback.print_exc()
-
-                if "Too Many Requests" in str(e) and proxy_config:
-                    print("Rotating proxy due to rate limiting...")
-                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
-                    retry_count += 1
-                    continue  # Retry
-
-                return {
-                    "error": True,
-                    "message": "Download failed",
-                    "type": "DownloadError",
-                    "details": str(e),
-                    "traceback": traceback.format_exc()
-                }
-
-            except Exception as e:
-                last_exception = e
-                print(f"Unexpected Error [{retry_count}]:")
-                traceback.print_exc()
+            # Agar xatolik "Sign in to confirm you're not a bot", "blocked it in your country"
+            # yoki "This video is unavailable" bo'lsa, proxy almashtirishni urinamiz
+            if any(msg in error_msg for msg in [
+                "Sign in to confirm you're not a bot",
+                "blocked it in your country",
+                "This video is unavailable"
+            ]):
+                # if proxy_config:
+                #     logging.info("Rotating proxy due to restriction...")
+                #     await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
                 retry_count += 1
-                continue  # Retry
+                continue
 
-        # If we exhausted all retries
-        return {
-            "error": True,
-            "message": "Max retries exceeded",
-            "last_exception": str(last_exception) if last_exception else None,
-            "traceback": traceback.format_exc() if last_exception else None,
-            "retries": retry_count
-        }
+            return {
+                "error": True,
+                "message": "Content extraction failed",
+                "type": "ExtractorError",
+                "details": error_msg,
+                "traceback": traceback.format_exc() or "No traceback available"
+            }
 
-    except Exception as e:
-        print("FATAL ERROR in get_yt_data:")
-        traceback.print_exc()
-        return {
-            "error": True,
-            "message": "Fatal error in YouTube data fetcher",
-            "type": "FatalError",
-            "details": str(e),
-            "traceback": traceback.format_exc()
-        }
+        except yt_dlp.utils.DownloadError as e:
+            last_exception = e
+            error_msg = str(e) or "No error details provided"
+            logging.error(f"Download Error [{retry_count}]: {error_msg}")
+            if "Too Many Requests" in error_msg:
+                logging.info("Rotating proxy due to rate limiting...")
+                # await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                retry_count += 1
+                continue
 
+            return {
+                "error": True,
+                "message": "Download failed",
+                "type": "DownloadError",
+                "details": error_msg,
+                "traceback": traceback.format_exc() or "No traceback available"
+            }
+
+        except Exception as e:
+            last_exception = e
+            error_msg = str(e) or "No error details provided"
+            logging.error(f"Unexpected Error [{retry_count}]: {error_msg}")
+            logging.exception("Stack trace:")
+            retry_count += 1
+            continue
+
+    # Agar barcha urinishlar muvaffaqiyatsiz tugasa
+    final_error = str(last_exception) or "No error details provided"
+    return {
+        "error": True,
+        "message": "Max retries exceeded",
+        "last_exception": final_error,
+        "traceback": traceback.format_exc() or "No traceback available",
+        "retries": retry_count
+    }
 ##################################################################################
 # async def get_yt_data(url: str):
 #
@@ -370,26 +354,16 @@ async def get_yt_data(url: str) -> Dict:
 
 
 async def get_youtube_video_info(url):
-    curr_t = time.time()
-    proxy_config = await get_proxy_config()
     ydl_opts = {
         "quiet": True,
-        "skip_download": True,
-        # "format": "bestaudio[ext=m4a]/best[ext=mp4]",
-        "extract_flat": True,
+        "no_warnings": True,
+        "format": "best[ext=mp4]",
         "noplaylist": True,
-        "match_filter": yt_dlp.utils.match_filter_func(
-            "original_url!*=/shorts/ & url!*=/shorts/ & !is_live & live_status!=is_upcoming & availability=public & ext!*=m3u8 & ext!*=webm"
-        ),
-        "prefer_ffmpeg": True,
+        "skip_download": True,
+        "n_connections": 4,
+        "socket_timeout": 30,
+        "retries": 2,
     }
-
-
-    if proxy_config:
-        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-        ydl_opts['proxy'] = proxy_url
-    print(time.time() - curr_t, "Time")
-
     try:
         loop = asyncio.get_running_loop()
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -398,7 +372,4 @@ async def get_youtube_video_info(url):
     except Exception as e:
         print(f"Error: {e}")
         return {"error": True, "message": f"Invalid response from the server: {e}"}
-
-
-
 

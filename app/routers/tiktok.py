@@ -825,7 +825,6 @@ driver = webdriver.Chrome()
 driver.get("https://www.instagram.com/")
 
 
-# target username
 username = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']")))
 password = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']")))
 username.clear()
@@ -833,7 +832,14 @@ username.send_keys("abduvohid_dev")
 password.clear()
 password.send_keys("20042629Ab@")
 
-button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']")))
+button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']")))
+button.click()
 
+# Qidiruv qismi
+WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "svg[aria-label='Search']"))).click()
 
-WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']")))
+searchbox = WebDriverWait(driver, 10).until(
+    EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Search']"))
+)
+searchbox.clear()
+searchbox.send_keys("@abduvohid_2629")

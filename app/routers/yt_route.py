@@ -19,7 +19,7 @@ async def yt_media(yt_url: str):
 
 
 
-@yt_router.get("/youtube/test/")
+# @yt_router.get("/youtube/test/")
 async def get_media(url: str):
     try:
         data = await get_youtube_video_info(url)
