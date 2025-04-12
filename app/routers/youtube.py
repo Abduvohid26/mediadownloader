@@ -75,10 +75,12 @@ import redis
 #         ydl_opts["proxy"] = proxy_url
 #
 #     loop = asyncio.get_running_loop()
+#     curr_time = time.time()
 #     try:
 #         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 #             info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
 #             data = await get_video(info, url, proxy_url)
+#             print(time.time() - curr_time, "seconds")
 #             return data
 #     except yt_dlp.utils.ExtractorError as e:
 #         error_msg = str(e)
@@ -141,17 +143,21 @@ async def get_yt_data(url: str):
         "format": "best[ext=mp4]",
         "noplaylist": True,
         "skip_download": True,
-        "n_connections": 4,  # Bir nechta parallel ulanishlar
-        "socket-timeout": 30,  # Tarmoq kutish vaqti
-        "retries": 2,  # Qayta urinishlar soni ikki martaga o'rnatilgan
+        "n_connections": 4,
+        "socket-timeout": 30,
+        "retries": 2,
     }
 
     proxy_config = await get_proxy_config()
     proxy_url = None
-    retry_count = 0  # Urinishlar sonini hisoblash
+    retry_count = 0
+
+    if proxy_config:
+        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+        ydl_opts["proxy"] = proxy_url
 
     loop = asyncio.get_running_loop()
-    while retry_count < 2:  # Ikki marta urinish
+    while retry_count < 2:
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
@@ -160,17 +166,13 @@ async def get_yt_data(url: str):
         except yt_dlp.utils.ExtractorError as e:
             error_msg = str(e)
             if "Sign in to confirm you’re not a bot" in error_msg or "This video contains content from SME, who has blocked it in your country on copyright grounds" in error_msg:
-                # Proxyni faqat "Sign in to confirm you’re not a bot" xatosida ishlatish
-                if proxy_config:
-                    proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-                    ydl_opts["proxy"] = proxy_url  # Proxyni sozlash
-                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")  # Proxyni o'chirish
-                retry_count += 1  # Urinishlar sonini oshirish
+                await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                retry_count += 1
             else:
-                break  # Agar boshqa xatolik bo'lsa, qaytish
+                break
         except Exception as e:
             print(f"Xatolik yuz berdi: {e}")
-            break  # Boshqa xatolik yuzaga kelsa, chiqish
+            break
 
     return {"error": True, "message": "Invalid response from the server"}
 
@@ -287,5 +289,7 @@ async def get_youtube_video_info(url):
     except Exception as e:
         print(f"Error: {e}")
         return {"error": True, "message": f"Invalid response from the server: {e}"}
+
+
 
 

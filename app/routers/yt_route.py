@@ -31,3 +31,61 @@ async def get_media(url: str):
     except Exception as e:
         print(f"Xatolik Yuz Berdi: {e}")
         return {"status": "error", "message": f"Invalid response from the server. {e}"}
+
+
+
+
+# import requests
+# from .proxy_route import get_proxy_config
+# import time
+# @yt_router.get("/checker/")
+# async def check_proxy_fast():
+#     proxy_config = await get_proxy_config()
+#     if not proxy_config:
+#         return {"status": "error", "message": "Proxy topilmadi"}
+#
+#     proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+#     proxies = {
+#         "http": proxy_url,
+#         "https": proxy_url,
+#     }
+#
+#     test_url = "https://www.google.com"
+#
+#     try:
+#         start = time.time()
+#         response = requests.get(test_url, proxies=proxies, timeout=10)
+#         end = time.time()
+#
+#         return {
+#             "status": "ok",
+#             "response_code": response.status_code,
+#             "duration": round(end - start, 2),
+#             "proxy": proxy_url
+#         }
+#     except requests.exceptions.RequestException as e:
+#         return {
+#             "status": "error",
+#             "message": str(e),
+#             "proxy": proxy_url
+#         }
+#
+# @yt_router.get("/checker/not/")
+# async def check_proxy_fast():
+#     test_url = "https://www.google.com"
+#     try:
+#             start = time.time()
+#             response = requests.get(test_url, timeout=10)
+#             end = time.time()
+#
+#             return {
+#                 "status": "ok",
+#                 "response_code": response.status_code,
+#                 "duration": round(end - start, 2),
+#             }
+#     except requests.exceptions.RequestException as e:
+#             return {
+#                 "status": "error",
+#                 "message": str(e),
+#
+#             }
