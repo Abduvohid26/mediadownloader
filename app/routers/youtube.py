@@ -219,6 +219,7 @@ async def get_yt_data(url: str) -> Dict:
                 error_msg = str(e)
                 print(f"Extractor Error [{retry_count}]: {error_msg}")
 
+                # Check for specific errors and retry if necessary
                 if any(msg in error_msg for msg in [
                     "Sign in to confirm you're not a bot",
                     "blocked it in your country",
@@ -228,7 +229,7 @@ async def get_yt_data(url: str) -> Dict:
                         print("Rotating proxy due to restriction...")
                         await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
                     retry_count += 1
-                    continue
+                    continue  # Retry
 
                 return {
                     "error": True,
@@ -247,7 +248,7 @@ async def get_yt_data(url: str) -> Dict:
                     print("Rotating proxy due to rate limiting...")
                     await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
                     retry_count += 1
-                    continue
+                    continue  # Retry
 
                 return {
                     "error": True,
@@ -262,7 +263,7 @@ async def get_yt_data(url: str) -> Dict:
                 print(f"Unexpected Error [{retry_count}]:")
                 traceback.print_exc()
                 retry_count += 1
-                continue
+                continue  # Retry
 
         # If we exhausted all retries
         return {
