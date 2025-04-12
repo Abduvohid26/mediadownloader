@@ -75,7 +75,6 @@ async def get_proxy_config():
             print(f"Database error: {e}")
             return None
 
-
 async def proxy_off(proxy_ip: str, action: str):
     async with SessionLocal() as db:
         try:
@@ -91,7 +90,6 @@ async def proxy_off(proxy_ip: str, action: str):
             # Berilgan action-ni False qilish
             if action in ["instagram", "youtube", "tiktok"]:
                 setattr(proxy, action, False)
-                print("False qilindi !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 await db.commit()
 
             # Agar barcha maydonlar False bo‘lsa, proxy-ni o‘chirish

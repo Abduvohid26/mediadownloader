@@ -95,58 +95,88 @@ import redis
 
 ##################################################################################
 # Video ma'lumotlarini olish
-async def get_video(info, url, proxy_url=None):
-    proxy_config = await get_proxy_config()
-    token = os.urandom(16).hex() if proxy_config else None
-    if proxy_url:
-        await redis_client.set(token, proxy_url)
+from typing import Dict, Optional, List, Any
+import traceback
 
-    formats = info.get("formats", [])
-    medias = [{
-        "quality": f"{info.get('format', '').split(' ')[-1]}",
-        "type": "video",
-        "ext": "mp4",
-        "url": info.get("url")
-    }]
+async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Dict:
+    """
+    Process YouTube video information into a structured format with error tracking.
+    """
+    try:
+        proxy_config = await get_proxy_config()
+        token = os.urandom(16).hex() if proxy_config else None
+        if proxy_url:
+            await redis_client.set(token, proxy_url)
 
-    # Qo'shimcha video va audio formatlari
-    medias.extend([
-        {
-            "quality": f"{data.get('format', '').split()[-1]}",
-            "type": "video" if data.get("ext") == "mp4" else "audio",
-            "ext": data.get("ext"),
-            "url": data.get("url")
+        # Main video format processing with validation
+        main_url = info.get("url")
+        if not main_url:
+            raise ValueError("No URL found in video info")
+
+        medias: List[Dict] = [{
+            "quality": f"{info.get('format', 'unknown').split(' ')[-1]}",
+            "type": "video",
+            "ext": "mp4",
+            "url": main_url
+        }]
+
+        # Additional formats processing with error handling
+        formats = info.get("formats", [])
+        for data in formats:
+            try:
+                if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]:
+                    medias.append({
+                        "quality": f"{data.get('format', 'unknown').split()[-1]}",
+                        "type": "video" if data.get("ext") == "mp4" else "audio",
+                        "ext": data.get("ext"),
+                        "url": data.get("url")
+                    })
+            except Exception as format_error:
+                print(f"Error processing format {data.get('format_id')}:")
+                traceback.print_exc()
+
+        # Thumbnail selection with fallbacks
+        thumbnail = None
+        if "thumbnails" in info:
+            for thumb in reversed(info["thumbnails"]):
+                try:
+                    if (thumb.get("url", "").endswith((".jpg", ".webp")) and
+                            (thumb.get("width", 0) >= 336 or
+                             thumb.get("height", 0) >= 188)):
+                        thumbnail = thumb["url"]
+                        break
+                except Exception as thumb_error:
+                    print("Error processing thumbnail:")
+                    traceback.print_exc()
+                    continue
+
+        return {
+            "error": False,
+            "hosting": "youtube",
+            "url": url,
+            "title": info.get("title", "Unknown Title"),
+            "thumbnail": thumbnail,
+            "duration": info.get("duration", 0),
+            "token": token,
+            "medias": medias
         }
-        for data in formats if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]
-    ])
 
-    # Thumbnail olish
-    thumbnail = None
-    if "thumbnails" in info:
-        for thumb in reversed(info["thumbnails"]):
-            if (
-                    thumb.get("url", "").endswith(".jpg") and
-                    (
-                            thumb.get("resolution", "").startswith("480") or
-                            thumb.get("resolution", "").startswith("336")
-                    )
-            ):
-                thumbnail = thumb["url"]
-                break
+    except Exception as e:
+        print("CRITICAL ERROR in get_video:")
+        traceback.print_exc()
+        return {
+            "error": True,
+            "message": f"Video processing failed: {str(e)}",
+            "traceback": traceback.format_exc(),
+            "original_info": info
+        }
 
-    return {
-        "error": False,
-        "hosting": "youtube",
-        "url": url,
-        "title": info.get("title"),
-        "thumbnail": thumbnail,
-        "duration": info.get("duration"),
-        "token": token,
-        "medias": medias
-    }
 
-# Youtube ma'lumotlarini olish
-async def get_yt_data(url: str):
+async def get_yt_data(url: str) -> Dict:
+    """
+    Fetch YouTube video data with comprehensive error tracking and retry logic.
+    """
+    # Initialize configuration
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
@@ -158,36 +188,101 @@ async def get_yt_data(url: str):
         "retries": 2,
     }
 
-    proxy_config = await get_proxy_config()
+    proxy_config = None
     proxy_url = None
     retry_count = 0
+    max_retries = 2
+    last_exception = None
 
-    # Proxy sozlamalarini o'rnatish
-    if proxy_config:
-        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-        ydl_opts["proxy"] = proxy_url
+    try:
+        proxy_config = await get_proxy_config()
+        if proxy_config:
+            proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+            ydl_opts["proxy"] = proxy_url
+            print(f"Proxy configured: {proxy_url[:15]}...")  # Log partial URL for security
 
-    loop = asyncio.get_running_loop()
-    while retry_count < 2:
-        try:
-            # YoutubeDL yordamida ma'lumot olish
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
-                data = await get_video(info, url, proxy_url)
-                return data
-        except yt_dlp.utils.ExtractorError as e:
-            error_msg = str(e)
-            # Maxsus xatoliklarni aniqlash va qayta urinib ko'rish
-            if "Sign in to confirm you’re not a bot" in error_msg or "This video contains content from SME, who has blocked it in your country on copyright grounds" in error_msg:
-                await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+        while retry_count <= max_retries:
+            try:
+                print(f"Attempt {retry_count + 1} of {max_retries + 1}")
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = await asyncio.to_thread(
+                        lambda: ydl.extract_info(url, download=False)
+                    )
+
+                    if not info:
+                        raise ValueError("Empty response from YouTube API")
+
+                    return await get_video(info, url, proxy_url)
+
+            except yt_dlp.utils.ExtractorError as e:
+                last_exception = e
+                error_msg = str(e)
+                print(f"Extractor Error [{retry_count}]: {error_msg}")
+
+                if any(msg in error_msg for msg in [
+                    "Sign in to confirm you're not a bot",
+                    "blocked it in your country",
+                    "This video is unavailable"
+                ]):
+                    if proxy_config:
+                        print("Rotating proxy due to restriction...")
+                        await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                    retry_count += 1
+                    continue
+
+                return {
+                    "error": True,
+                    "message": "Content extraction failed",
+                    "type": "ExtractorError",
+                    "details": error_msg,
+                    "traceback": traceback.format_exc()
+                }
+
+            except yt_dlp.utils.DownloadError as e:
+                last_exception = e
+                print(f"Download Error [{retry_count}]:")
+                traceback.print_exc()
+
+                if "Too Many Requests" in str(e) and proxy_config:
+                    print("Rotating proxy due to rate limiting...")
+                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                    retry_count += 1
+                    continue
+
+                return {
+                    "error": True,
+                    "message": "Download failed",
+                    "type": "DownloadError",
+                    "details": str(e),
+                    "traceback": traceback.format_exc()
+                }
+
+            except Exception as e:
+                last_exception = e
+                print(f"Unexpected Error [{retry_count}]:")
+                traceback.print_exc()
                 retry_count += 1
-            else:
-                break
-        except Exception as e:
-            print(f"Xatolik yuz berdi: {e}")
-            break
+                continue
 
-    return {"error": True, "message": "Invalid response from the server"}
+        # If we exhausted all retries
+        return {
+            "error": True,
+            "message": "Max retries exceeded",
+            "last_exception": str(last_exception) if last_exception else None,
+            "traceback": traceback.format_exc() if last_exception else None,
+            "retries": retry_count
+        }
+
+    except Exception as e:
+        print("FATAL ERROR in get_yt_data:")
+        traceback.print_exc()
+        return {
+            "error": True,
+            "message": "Fatal error in YouTube data fetcher",
+            "type": "FatalError",
+            "details": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 ##################################################################################
 # async def get_yt_data(url: str):
