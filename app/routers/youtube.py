@@ -94,12 +94,14 @@ import redis
 
 
 ##################################################################################
+# Video ma'lumotlarini olish
 async def get_video(info, url, proxy_url=None):
     proxy_config = await get_proxy_config()
     token = os.urandom(16).hex() if proxy_config else None
-    redis_client.set(token, proxy_url)
-    formats = info.get("formats", [])
+    if proxy_url:
+        await redis_client.set(token, proxy_url)
 
+    formats = info.get("formats", [])
     medias = [{
         "quality": f"{info.get('format', '').split(' ')[-1]}",
         "type": "video",
@@ -107,6 +109,7 @@ async def get_video(info, url, proxy_url=None):
         "url": info.get("url")
     }]
 
+    # Qo'shimcha video va audio formatlari
     medias.extend([
         {
             "quality": f"{data.get('format', '').split()[-1]}",
@@ -117,8 +120,8 @@ async def get_video(info, url, proxy_url=None):
         for data in formats if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]
     ])
 
-    # thumbnail = info.get("thumbnail", "")
-
+    # Thumbnail olish
+    thumbnail = None
     if "thumbnails" in info:
         for thumb in reversed(info["thumbnails"]):
             if (
@@ -142,6 +145,7 @@ async def get_video(info, url, proxy_url=None):
         "medias": medias
     }
 
+# Youtube ma'lumotlarini olish
 async def get_yt_data(url: str):
     ydl_opts = {
         "quiet": True,
@@ -158,6 +162,7 @@ async def get_yt_data(url: str):
     proxy_url = None
     retry_count = 0
 
+    # Proxy sozlamalarini o'rnatish
     if proxy_config:
         proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
         ydl_opts["proxy"] = proxy_url
@@ -165,12 +170,14 @@ async def get_yt_data(url: str):
     loop = asyncio.get_running_loop()
     while retry_count < 2:
         try:
+            # YoutubeDL yordamida ma'lumot olish
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
                 data = await get_video(info, url, proxy_url)
                 return data
         except yt_dlp.utils.ExtractorError as e:
             error_msg = str(e)
+            # Maxsus xatoliklarni aniqlash va qayta urinib ko'rish
             if "Sign in to confirm you’re not a bot" in error_msg or "This video contains content from SME, who has blocked it in your country on copyright grounds" in error_msg:
                 await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
                 retry_count += 1
