@@ -117,9 +117,9 @@ async def get_video(info, url, proxy_url=None):
         for data in formats if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]
     ])
 
-    thumbnail = info.get("thumbnail", "")
+    # thumbnail = info.get("thumbnail", "")
 
-    if not thumbnail.endswith(".jpg") and "thumbnails" in info:
+    if "thumbnails" in info:
         for thumb in reversed(info["thumbnails"]):
             if (
                     thumb.get("url", "").endswith(".jpg") and
@@ -167,7 +167,6 @@ async def get_yt_data(url: str):
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = await asyncio.to_thread(lambda: ydl.extract_info(url, download=False))
-                print(info, "INFO")
                 data = await get_video(info, url, proxy_url)
                 return data
         except yt_dlp.utils.ExtractorError as e:
