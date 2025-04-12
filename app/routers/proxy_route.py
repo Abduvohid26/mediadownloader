@@ -54,26 +54,27 @@ async def get_proxy_config():
             result = await db.execute(
                 select(ProxyServers)
                 .filter(ProxyServers.instagram == True)
-                .order_by(func.random())  
-                .limit(1)  
+                .order_by(func.random())
+                .limit(1)
             )
             _proxy = result.scalars().first()
 
-            if not _proxy:  
+            if not _proxy:
                 print("No proxy servers available in the database.")
                 return None
 
-            proxy_config = {    
+            proxy_config = {
                 "server": f"http://{_proxy.proxy}",
                 "username": _proxy.username,
                 "password": _proxy.password
             }
             print("Salom", proxy_config)
             return proxy_config
-        
+
         except SQLAlchemyError as e:
             print(f"Database error: {e}")
             return None
+
 
 async def proxy_off(proxy_ip: str, action: str):
     async with SessionLocal() as db:
