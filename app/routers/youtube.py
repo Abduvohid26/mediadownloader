@@ -106,7 +106,7 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
         proxy_config = await get_proxy_config()
         token = os.urandom(16).hex() if proxy_config else None
         if proxy_url:
-            await redis_client.set(token, proxy_url)
+            redis_client.set(token, proxy_url)
 
         # Main video format processing with validation
         main_url = info.get("url")
