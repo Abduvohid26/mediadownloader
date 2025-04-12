@@ -206,7 +206,7 @@ async def get_yt_data(url: str) -> Dict:
                 if not info:
                     raise ValueError("Empty response from YouTube API")
                 logging.info("Good request")
-                return await get_video(info, url, None)
+                return await get_video(info, url, proxy_url)
 
         except yt_dlp.utils.ExtractorError as e:
             last_exception = e
