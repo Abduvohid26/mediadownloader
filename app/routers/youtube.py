@@ -108,8 +108,8 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
     try:
         # Agar proxy mavjud bo'lsa token hosil qilamiz va redisga yozamiz
         token = os.urandom(16).hex() if proxy_url else None
-        # if token and proxy_url:
-        #     redis_client.set(token, proxy_url)
+        if token and proxy_url:
+            redis_client.set(token, proxy_url)
 
         # Asosiy video URL-ni olish
         main_url = info.get("url")
@@ -194,11 +194,11 @@ async def get_yt_data(url: str) -> Dict:
         proxy_url = None
         try:
             # Har urinishdan oldin yangi proxy ma'lumotlarini olish
-            # proxy_config = await get_proxy_config()
-            # if proxy_config:
-            #     proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-            #     ydl_opts["proxy"] = proxy_url
-            #     logging.info(f"Proxy configured: {proxy_url[:15]}...")
+            proxy_config = await get_proxy_config()
+            if proxy_config:
+                proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+                ydl_opts["proxy"] = proxy_url
+                logging.info(f"Proxy configured: {proxy_url[:15]}...")
 
             logging.info(f"Attempt {retry_count + 1} of {max_retries + 1}")
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -220,9 +220,9 @@ async def get_yt_data(url: str) -> Dict:
                 "blocked it in your country",
                 "This video is unavailable"
             ]):
-                # if proxy_config:
-                #     logging.info("Rotating proxy due to restriction...")
-                #     await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                if proxy_config:
+                    logging.info("Rotating proxy due to restriction...")
+                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
                 retry_count += 1
                 continue
 
@@ -240,7 +240,7 @@ async def get_yt_data(url: str) -> Dict:
             logging.error(f"Download Error [{retry_count}]: {error_msg}")
             if "Too Many Requests" in error_msg:
                 logging.info("Rotating proxy due to rate limiting...")
-                # await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
                 retry_count += 1
                 continue
 
