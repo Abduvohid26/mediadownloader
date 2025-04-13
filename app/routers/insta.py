@@ -210,7 +210,7 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
             return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
 
         try:
-            await page.wait_for_selector("article", timeout=15000)
+            await page.wait_for_selector("article", timeout=20000)
         except PlaywrightTimeoutError:
             logger.error("🔄 Sahifada article elementi topilmadi")
             return {"error": True, "message": "Invalid response from the server"}
