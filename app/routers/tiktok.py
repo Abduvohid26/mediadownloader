@@ -4,6 +4,7 @@
 # from selenium.webdriver.common.keys import Keys
 # from webdriver_manager.chrome import ChromeDriverManager
 # import time
+from enum import unique
 
 # def get_tiktok_download_url(video_url):
 #     options = webdriver.ChromeOptions()
@@ -803,7 +804,7 @@ POST_URL = "https://www.instagram.com/p/DHlg_abtePq/?utm_source=ig_web_copy_link
 # direct_link = get_tiktok_video_url(video_url)
 # print("Direct Video URL:", direct_link)
 
-
+#
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -816,30 +817,414 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import requests
 from bs4 import BeautifulSoup
+#
+# # setup chrome driver
+# driver = webdriver.Chrome()
+#
+#
+# # open to web page
+# driver.get("https://www.instagram.com/")
+#
+#
+# username = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']")))
+# password = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']")))
+# username.clear()
+# username.send_keys("abduvohid_dev")
+# password.clear()
+# password.send_keys("20042629Ab@")
+#
+# button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']")))
+# button.click()
+#
+# # Qidiruv qismi
+# WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "svg[aria-label='Search']"))).click()
+#
+# searchbox = WebDriverWait(driver, 10).until(
+#     EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Search']"))
+# )
+#
+# keyboard = "@abduvohid_2629"
+# searchbox.clear()
+# searchbox.send_keys(keyboard)
+#
+# if keyboard.startswith("@"):
+#     keyboard = keyboard[1:]
+# first_result = WebDriverWait(driver, 10).until(
+#     EC.element_to_be_clickable((By.XPATH, f'//span[text()="{keyboard}"]'))
+# )
+#
+# first_result.click()
+#
+# initial_height = driver.execute_script("return document.body.scrollHeight")
+#
+# soups = []
+#
+# while True:
+#     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+#     time.sleep(2)
+#
+#     html = driver.page_source
+#     soups.append(BeautifulSoup(html, "html.parser"))
+#
+#     current_height = driver.execute_script("return document.body.scrollHeight")
+#
+#     if current_height == initial_height:
+#         break
+#     initial_height = current_height
+#
+# posts_urls = []
+#
+# for soup in soups:
+#     elements = soup.find_all("a",
+#                              class_="x1i10hfl xjbqb8w x1ejq31n xd10rxx x1sy0etr x17r0tee x972fbf xcfux6l x1qhh985 xm0m39n x9f619 x1ypdohk xt0psk2 xe8uvvx xdj266r x11i5rnm xat24cr x1mh8g0r xexx8yu x4uap5 x18d9i69 xkhd6sd x16tdsg8 x1hl2dhg xggy1nq x1a2a7pz _a6hd")
+#
+#     posts_urls.extend([
+#         element['href'] for element in elements
+#         if element.get('href') and any(x in element['href'] for x in ["/p/", "/reel/"])
+#     ])
+#
+# unique_posts_urls = list(set(posts_urls))
+# print(len(unique_posts_urls))
 
-# setup chrome driver
-driver = webdriver.Chrome()
 
 
-# open to web page
-driver.get("https://www.instagram.com/")
 
 
-username = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']")))
-password = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']")))
-username.clear()
-username.send_keys("abduvohid_dev")
-password.clear()
-password.send_keys("20042629Ab@")
 
-button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']")))
-button.click()
 
-# Qidiruv qismi
-WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "svg[aria-label='Search']"))).click()
 
-searchbox = WebDriverWait(driver, 10).until(
-    EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Search']"))
-)
-searchbox.clear()
-searchbox.send_keys("@abduvohid_2629")
+# def func(post_url):
+#     options = Options()
+#     options.add_argument("--start-maximized")
+#     driver = webdriver.Chrome(options=options)
+#
+#     # URL orqali ochish
+#     driver.get(post_url)
+#
+#     # --- 2. Parse HTML ---
+#     time.sleep(3)  # Sahifa to'liq yuklanishini kutish
+#
+#     soup = BeautifulSoup(driver.page_source, "html.parser")
+#
+#     media_urls = []
+#
+#     video = soup.find("video")
+#     print(video, "Video")
+#     if video and video.has_attr("src"):
+#         media_urls.append(video["src"])
+#     else:
+#         img_tags = soup.find_all("img")
+#         for img in img_tags:
+#             if img.has_attr("src") and "scontent" in img["src"]:  # faqat rasm URL
+#                 media_urls.append(img["src"])
+#
+#     # --- 4. Natija va Media URL'larini chiqarish ---
+#     if media_urls:
+#         print("✅ Media URL lar:")
+#         for url in media_urls:
+#             print(url)
+#     else:
+#         print("❌ Media topilmadi.")
+#
+#     driver.quit()
+#
+# print(func(post_url="https://www.instagram.com/reel/DIWWW-TsHjg/?utm_source=ig_web_copy_link"))
+#
+
+
+import logging
+logger = logging.getLogger(__name__)
+
+from urllib.parse import urlparse
+import logging
+
+logger = logging.getLogger(__name__)
+
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+from urllib.parse import urlparse
+import logging
+
+logger = logging.getLogger(__name__)
+
+# async def get_instagram_post_images(post_url, caption, proxy_config):
+#     """
+#     Instagram postidagi barcha rasm URLlarini olish (albumlarni ham to'liq yuklash)
+#
+#     Args:
+#         post_url (str): Instagram post linki
+#
+#     Returns:
+#         dict: Instagram postidagi barcha rasm URLlari va qo‘shimcha ma‘lumotlar
+#     """
+#     try:
+#         async with async_playwright() as playwright:
+#             browser = await playwright.chromium.launch()
+#             try:
+#                 page = await browser.new_page()
+#             except Exception as e:
+#                 logger.error(msg=f"Page yaratishda xatolik:: {e}")
+#                 return {"error": True, "message": "Invalid response from the server"}
+#
+#             try:
+#                 await page.goto(post_url, timeout=15000)
+#             except PlaywrightTimeoutError:
+#                 logger.error(msg=f"⏳ Sahifani yuklash muddati tugadi")
+#                 return {"error": True, "message": "Invalid response from the server"}
+#
+#             path = urlparse(post_url).path
+#             shortcode = path.strip("/").split("/")[-1]
+#
+#             try:
+#                 await page.wait_for_selector("article", timeout=15000)
+#             except PlaywrightTimeoutError:
+#                 logger.error(msg=f"🔄 Sahifada article elementi topilmadi")
+#                 return {"error": True, "message": "Invalid response from the server"}
+#
+#             image_urls = set()
+#
+#             while True:
+#                 images = await page.locator("article ._aagv img").all()
+#                 for img in images:
+#                     url = await img.get_attribute("src")
+#                     if url and (url.startswith('http') and any(ext in url for ext in ['.jpg', '.jpeg', '.png'])):
+#                         image_urls.add(url)
+#
+#                 next_button = page.locator("button[aria-label='Next']")
+#                 if await next_button.count() > 0:
+#                     prev_count = len(image_urls)
+#                     await next_button.click()
+#                     await page.wait_for_selector("article ._aagv img", timeout=5000)  # Ensure new images are loaded
+#                     if len(image_urls) == prev_count:
+#                         break  # Agar yangi rasm topilmasa, loopni to‘xtatish
+#                 else:
+#                     break
+#
+#             if not image_urls:
+#                 logger.error(msg="🚫 Rasm URLlari topilmadi")
+#                 return {"error": True, "message": "Invalid response from the server"}
+#
+#             return {
+#                 "error": False,
+#                 "hosting": "instagram",
+#                 "type": "album" if len(image_urls) > 1 else "image",
+#                 "shortcode": shortcode,
+#                 "caption": caption,
+#                 "medias": [{"type": "image", "download_url": url, "thumb": url} for url in image_urls]
+#             }
+#
+#     except Exception as e:
+#         logger.error(msg=f"❌ Noma'lum xatolik: {str(e)}")
+#         return {"error": True, "message": "Invalid response from the server"}
+#
+# import asyncio
+# print(asyncio.run(get_instagram_post_images(post_url="https://www.instagram.com/reel/DG3A3BiqzV5/?utm_source=ig_web_copy_link", caption="SAlom", proxy_config=None)))
+
+
+import asyncio
+from urllib.parse import urlparse
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+
+
+
+# async def get_instagram_post_images(post_url: str, caption: str = "", proxy_config: dict = None):
+#     """
+#     Instagram postidagi barcha rasm URLlarini olish (albumlarni ham to'liq yuklash)
+#     """
+#     playwright = await async_playwright().start()
+#     browser = None
+#
+#     try:
+#         browser_args = {
+#             "headless": False
+#         }
+#
+#         if proxy_config:
+#             browser_args["proxy"] = proxy_config
+#
+#         browser = await playwright.chromium.launch(**browser_args)
+#         context = await browser.new_context()
+#         page = await context.new_page()
+#
+#         try:
+#             await page.goto(post_url, timeout=15000)
+#         except PlaywrightTimeoutError:
+#             return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
+#
+#         path = urlparse(post_url).path
+#
+#         try:
+#             await page.wait_for_selector("article", timeout=15000)
+#         except PlaywrightTimeoutError:
+#             logger.error("🔄 Sahifada article elementi topilmadi")
+#             return {"error": True, "message": "Invalid response from the server"}
+#
+#         image_urls = set()
+#         await page.mouse.click(10, 10)
+#         await page.wait_for_timeout(1500)
+#
+#         while True:
+#             images = await page.locator("article ._aagv img").all()
+#             for img in images:
+#                 url = await img.get_attribute("src")
+#                 if url:
+#                     image_urls.add(url)
+#
+#             next_button = page.locator("button[aria-label='Next']")
+#
+#             # "Next" tugmasi mavjud bo'lishini kutamiz
+#             try:
+#                 await next_button.wait_for(timeout=3000)
+#             except PlaywrightTimeoutError:
+#                 break  # Endi keyingi rasm yo‘q
+#
+#             prev_count = len(image_urls)
+#             await next_button.click()
+#             await page.wait_for_timeout(1000)  # Keyingi rasm yuklanishini kutamiz
+#
+#             # await page.wait_for_selector("video, img", timeout=10000)  # Video va img kutish
+#
+#             video_elements = await page.query_selector_all("video")
+#             video_data = []
+#             for video in video_elements:
+#                 video_url = await video.get_attribute("src")
+#                 if video_url:  # Agar URL mavjud bo'lsa
+#                     video_data.append({"url": video_url, "type": "video"})
+#
+#             # Agar yangi rasm chiqmagan bo‘lsa, loopdan chiqamiz
+#             images = await page.locator("article ._aagv img").all()
+#             new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
+#             if len(new_urls - image_urls) == 0:
+#                 break
+#             image_urls.update(new_urls)
+#
+#         if not image_urls:
+#             logger.error(msg="🚫 Rasm URLlari topilmadi")
+#             return {"error": True, "message": "Invalid response from the server"}
+#
+#         return {
+#             "error": False,
+#             "hosting": "instagram",
+#             "type": "album" if len(image_urls) > 1 else "image",
+#             "caption": caption,
+#             "medias": [{"type": "image", "download_url": url} for url in image_urls]
+#         }
+#
+#
+#     finally:
+#         # Brauzer va Playwright sessionni toza yopish
+#         if browser:
+#             await browser.close()
+#         await playwright.stop()
+
+
+async def get_instagram_post_images(post_url: str, proxy_config: dict = None):
+    """
+    Instagram postidagi barcha rasm va video URLlarini olish (albumlarni ham to'liq yuklash)
+    """
+    playwright = await async_playwright().start()
+    browser = None
+
+    try:
+        browser_args = {
+            "headless": False
+        }
+
+        if proxy_config:
+            browser_args["proxy"] = proxy_config
+
+        browser = await playwright.chromium.launch(**browser_args)
+        context = await browser.new_context()
+        page = await context.new_page()
+
+        try:
+            await page.goto(post_url, timeout=15000)
+        except PlaywrightTimeoutError:
+            return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
+
+        path = urlparse(post_url).path
+
+        try:
+            await page.wait_for_selector("article", timeout=15000)
+        except PlaywrightTimeoutError:
+            logger.error("🔄 Sahifada article elementi topilmadi")
+            return {"error": True, "message": "Invalid response from the server"}
+
+        image_urls = set()
+        video_data = []
+
+        await page.mouse.click(10, 10)
+        await page.wait_for_timeout(1500)
+        caption = None
+        caption_element = await page.query_selector('article span._ap3a')
+        if caption_element:
+            caption = await caption_element.inner_text()
+
+        while True:
+            # Rasmlar
+            images = await page.locator("article ._aagv img").all()
+            for img in images:
+                url = await img.get_attribute("src")
+                if url:
+                    image_urls.add(url)
+
+            # Videolar
+            video_elements = await page.query_selector_all("video")
+            for video in video_elements:
+                video_url = await video.get_attribute("src")
+                if video_url and not any(v["url"] == video_url for v in video_data):
+                    video_data.append({"url": video_url, "type": "video"})
+
+            # Keyingi tugmasini aniqlash
+            next_button = page.locator("button[aria-label='Next']")
+            try:
+                await next_button.wait_for(timeout=3000)
+            except PlaywrightTimeoutError:
+                break  # Endi keyingi media yo‘q
+
+            prev_count = len(image_urls) + len(video_data)
+
+            await next_button.click()
+            await page.wait_for_timeout(1000)
+
+            # Yangi rasm yoki video chiqmagan bo‘lsa, to‘xtaymiz
+            images = await page.locator("article ._aagv img").all()
+            new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
+            new_video_elements = await page.query_selector_all("video")
+            new_video_urls = [
+                await video.get_attribute("src") for video in new_video_elements if await video.get_attribute("src")
+            ]
+            for url in new_video_urls:
+                if url and not any(v["url"] == url for v in video_data):
+                    video_data.append({"url": url, "type": "video"})
+
+            if len(new_urls - image_urls) == 0 and len(new_video_urls) == 0:
+                break
+
+            image_urls.update(new_urls)
+
+        if not image_urls and not video_data:
+            logger.error(msg="🚫 Media URLlari topilmadi")
+            return {"error": True, "message": "Invalid response from the server"}
+
+        media_items = [{"type": "image", "download_url": url} for url in image_urls]
+        media_items += video_data  # videolarni ham qo‘shamiz
+
+        return {
+            "error": False,
+            "hosting": "instagram",
+            "type": "album" if len(media_items) > 1 else media_items[0]["type"],
+            "caption": caption,
+            "medias": media_items
+        }
+
+    finally:
+        if browser:
+            await browser.close()
+        await playwright.stop()
+
+# # 🔍 Sinab ko‘rish (Asosiy)
+# if __name__ == "__main__":
+#     # post_link = "https://www.instagram.com/p/DIV93Y2tLx7/?utm_source=ig_web_copy_link"  # Misol post
+#     post_link = "https://www.instagram.com/p/DIB8oINAbCk/?utm_source=ig_web_copy_link"
+#     result = asyncio.run(get_instagram_post_images(post_link, None))
+#     print(result)

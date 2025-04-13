@@ -2,7 +2,7 @@ import traceback
 import logging
 import yt_dlp
 import asyncio
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 from fastapi import FastAPI
 import weakref
 
@@ -161,8 +161,8 @@ async def download_instagram_media(url, proxy_config):
             data = await get_video(info, url)
         else:
             print("Get media1")
-            data = await get_instagram_story_urls(
-                username=url,
+            data = await get_instagram_image_and_album_and_reels(
+                post_url=url,
                 proxy_config=proxy_config,
             )
         return data
@@ -172,8 +172,8 @@ async def download_instagram_media(url, proxy_config):
 
         if "There is no video in this post" in error_message:
             print("Get media2")
-            return await get_instagram_story_urls(
-                username=url,
+            return await get_instagram_image_and_album_and_reels(
+                post_url=url,
                 proxy_config=proxy_config
             )
         print("Error", error_message)
@@ -187,68 +187,166 @@ async def download_instagram_media(url, proxy_config):
 
 
 
+async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
+    print("Bizdan salomlar")
 
-
-
-
-
-
-
-import time
-import asyncio
-
-async def get_instagram_story_urls_self(url):
     try:
-        async with async_playwright() as playwright:
-            options = {
-                "headless": False,  # Ko'rinadigan rejimda ishga tushiramiz
-                "args": ["--no-sandbox", "--disable-setuid-sandbox"],
-            }
-            browser = await playwright.chromium.launch(**options)
-            page = await browser.new_page()
-            await page.goto(url, timeout=60000)
+        browser, context, page, playwright = await init_browser(proxy_config)
 
-            # Modalni yopish (ESC tugmasi)
-            await page.keyboard.press("Escape")
+        browser_args = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+        }
 
-            await page.wait_for_selector("video, img", timeout=10000)  # Video va img kutish
+        if proxy_config:
+            browser_args["proxy"] = proxy_config
+        #
+        # browser = await playwright.chromium.launch(**browser_args)
+        page = await context.new_page()
 
-            # Video URL'larini olish
+        try:
+            await page.goto(post_url, timeout=15000)
+        except PlaywrightTimeoutError:
+            return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
+
+        try:
+            await page.wait_for_selector("article", timeout=15000)
+        except PlaywrightTimeoutError:
+            logger.error("🔄 Sahifada article elementi topilmadi")
+            return {"error": True, "message": "Invalid response from the server"}
+
+        image_urls = set()
+        video_data = []
+
+        await page.mouse.click(10, 10)
+        await page.wait_for_timeout(1500)
+        caption = None
+        caption_element = await page.query_selector('article span._ap3a')
+        if caption_element:
+            caption = await caption_element.inner_text()
+
+        while True:
+            # Rasmlar
+            images = await page.locator("article ._aagv img").all()
+            for img in images:
+                url = await img.get_attribute("src")
+                if url:
+                    image_urls.add(url)
+
+            # Videolar
             video_elements = await page.query_selector_all("video")
-            print(video_elements, "VIDEO")
-            video_data = []
             for video in video_elements:
                 video_url = await video.get_attribute("src")
-                if video_url:  # Agar URL mavjud bo'lsa
+                if video_url and not any(v["url"] == video_url for v in video_data):
                     video_data.append({"url": video_url, "type": "video"})
 
-            img_elements = await page.query_selector_all("img")
-            print(img_elements, "IMG")
-            img_data = []
-            for img in img_elements:
-                img_url = await img.get_attribute("src")
-                # Agar rasm URL'si mavjud bo'lsa va media URL bo'lsa
-                if img_url and 'media' in img_url:
-                    img_data.append({"url": img_url, "type": "image"})
+            # Keyingi tugmasini aniqlash
+            next_button = page.locator("button[aria-label='Next']")
+            try:
+                await next_button.wait_for(timeout=3000)
+            except PlaywrightTimeoutError:
+                break  # Endi keyingi media yo‘q
 
-            # Video va rasm URL'larini birlashtirish
-            all_media = video_data + img_data
+            prev_count = len(image_urls) + len(video_data)
 
-            await browser.close()
-            return {"error": False, "media_urls": all_media}
+            await next_button.click()
+            await page.wait_for_timeout(1000)
 
+            # Yangi rasm yoki video chiqmagan bo‘lsa, to‘xtaymiz
+            images = await page.locator("article ._aagv img").all()
+            new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
+            new_video_elements = await page.query_selector_all("video")
+            new_video_urls = [
+                await video.get_attribute("src") for video in new_video_elements if await video.get_attribute("src")
+            ]
+            for url in new_video_urls:
+                if url and not any(v["url"] == url for v in video_data):
+                    video_data.append({"url": url, "type": "video"})
+
+            if len(new_urls - image_urls) == 0 and len(new_video_urls) == 0:
+                break
+
+            image_urls.update(new_urls)
+
+        if not image_urls and not video_data:
+            logger.error(msg="🚫 Media URLlari topilmadi")
+            return {"error": True, "message": "Invalid response from the server"}
+
+        media_items = [{"type": "image", "download_url": url} for url in image_urls]
+        media_items += video_data  # videolarni ham qo‘shamiz
+
+        return {
+            "error": False,
+            "hosting": "instagram",
+            "type": "album" if len(media_items) > 1 else media_items[0]["type"],
+            "caption": caption,
+            "medias": media_items
+        }
     except Exception as e:
-        print("Error get_instagram_story_urls_self:", e)
+        print(f"Error: {e}")
         return {"error": True, "message": "Invalid response from the server"}
 
 
-async def main():
-    curr_time = time.time()
-    url = "https://www.instagram.com/p/DITdnSCNJXC/?utm_source=ig_web_copy_link"
-    result = await get_instagram_story_urls_self(url)
-    print(result)
-    print(time.time() - curr_time, "RES")
+
+
+
+
 #
+# import time
+# import asyncio
+#
+# async def get_instagram_story_urls_self(url):
+#     try:
+#         async with async_playwright() as playwright:
+#             options = {
+#                 "headless": False,  # Ko'rinadigan rejimda ishga tushiramiz
+#                 "args": ["--no-sandbox", "--disable-setuid-sandbox"],
+#             }
+#             browser = await playwright.chromium.launch(**options)
+#             page = await browser.new_page()
+#             await page.goto(url, timeout=60000)
+#
+#             # Modalni yopish (ESC tugmasi)
+#             await page.keyboard.press("Escape")
+#
+#             await page.wait_for_selector("video, img", timeout=10000)  # Video va img kutish
+#
+#             # Video URL'larini olish
+#             video_elements = await page.query_selector_all("video")
+#             print(video_elements, "VIDEO")
+#             video_data = []
+#             for video in video_elements:
+#                 video_url = await video.get_attribute("src")
+#                 if video_url:  # Agar URL mavjud bo'lsa
+#                     video_data.append({"url": video_url, "type": "video"})
+#
+#             img_elements = await page.query_selector_all("img")
+#             print(img_elements, "IMG")
+#             img_data = []
+#             for img in img_elements:
+#                 img_url = await img.get_attribute("src")
+#                 # Agar rasm URL'si mavjud bo'lsa va media URL bo'lsa
+#                 if img_url and 'media' in img_url:
+#                     img_data.append({"url": img_url, "type": "image"})
+#
+#             # Video va rasm URL'larini birlashtirish
+#             all_media = video_data + img_data
+#
+#             await browser.close()
+#             return {"error": False, "media_urls": all_media}
+#
+#     except Exception as e:
+#         print("Error get_instagram_story_urls_self:", e)
+#         return {"error": True, "message": "Invalid response from the server"}
+#
+#
+# async def main():
+#     curr_time = time.time()
+#     url = "https://www.instagram.com/p/DITdnSCNJXC/?utm_source=ig_web_copy_link"
+#     result = await get_instagram_story_urls_self(url)
+#     print(result)
+#     print(time.time() - curr_time, "RES")
+# #
 # asyncio.run(main())
 #
 # if global_browser["browser"] is None:
@@ -367,7 +465,7 @@ async def main():
 #
 #
 # async def main():
-#     post_url = "https://www.instagram.com/p/DITdnSCNJXC/?utm_source=ig_web_copy_link"
+#     post_url = "https://www.instagram.com/reel/DIWWW-TsHjg/?utm_source=ig_web_copy_link"
 #     result = await extract_instagram_media_urls(post_url)
 #
 #     if result['success']:
