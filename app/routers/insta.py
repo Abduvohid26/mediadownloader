@@ -198,8 +198,8 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
             "args": ["--no-sandbox", "--disable-setuid-sandbox"]
         }
 
-        if proxy_config:
-            browser_args["proxy"] = proxy_config
+        # if proxy_config:
+        #     browser_args["proxy"] = proxy_config
         #
         # browser = await playwright.chromium.launch(**browser_args)
         page = await context.new_page()
