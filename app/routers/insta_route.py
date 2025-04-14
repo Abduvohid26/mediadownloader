@@ -22,6 +22,23 @@ async def get_instagram_media(in_url: str, db : AsyncSession = Depends(get_db)):
 
     return media_urls
 
+@insta_router.post("/instgram/media/service/", include_in_schema=False)
+async def get_media(url: InstaSchema = Form(...)):
+    url = url.url.strip()
+    proxy_config = await get_proxy_config()
+    # if not url.startswith("https://www.instagram.com/"):
+    #     return {"status": "error", "message": "Iltimos, URL'ni tekshiring va qayta urinib ko'ring."}
+    if "stories" in url:
+        data =  await get_instagram_story_urls(url, proxy_config)
+        return data
+    media_urls = await download_instagram_media(url, proxy_config)
+
+    if not media_urls:  
+        return {"error": True, "message": "Invalid response from the server."}
+
+    return media_urls
+
+
 
 # @insta_router.post("/instgram/stories")
 # async def get_stories(username: InstaStory = Form(...)):
