@@ -22,7 +22,7 @@ async def get_instagram_media(in_url: str, db : AsyncSession = Depends(get_db)):
 
     return media_urls
 
-@insta_router.post("/instagram/media/service/")
+@insta_router.post("/instagram/media/service/", include_in_schema=False)
 async def get_media(url: InstaSchema = Form(...)):
     url = url.url.strip()
     proxy_config = await get_proxy_config()
