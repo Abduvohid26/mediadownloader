@@ -1,10 +1,10 @@
 import asyncio
 from playwright.async_api import async_playwright
-
+from .proxy_route import get_proxy_config
 
 class BrowserManager:
-    def __init__(self, interval, proxy_config=None):
-        self.proxy_config = proxy_config
+    def __init__(self, interval):
+        self.proxy_config = None
         self.interval = interval
 
         self.playwright = None
@@ -30,12 +30,13 @@ class BrowserManager:
             self.context = await self.browser.new_context()
             self.page = await self.context.new_page()
             self.page_in = await self.context.new_page()
+            self.proxy_config = await get_proxy_config()
 
             await self.page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000)
             await self.page_in.goto("https://www.instagram.com", timeout=30000)
             await self.page_in.wait_for_load_state("domcontentloaded")
 
-            print("🔄 Instagram va Ssinstagram sahifasi tayyor")
+            print(f"🔄 Instagram va Ssinstagram sahifasi tayyor: \n{self.proxy_config}")    
 
     async def goto_reel(self, url):
         if not self.page_in:

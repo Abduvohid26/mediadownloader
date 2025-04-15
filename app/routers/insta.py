@@ -5,6 +5,7 @@ import asyncio
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from fastapi import FastAPI
 from .model import BrowserManager
+from .proxy_route import get_proxy_config
 
 
 class Example:
@@ -15,7 +16,8 @@ app = FastAPI()
 
 logger = logging.getLogger(__name__)
 
-manager = BrowserManager(proxy_config=None, interval=100)
+
+manager = BrowserManager(interval=100)
 
 
 async def get_instagram_story_urls(username, proxy_config):
