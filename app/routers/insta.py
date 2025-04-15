@@ -159,9 +159,9 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
             # await page.wait_for_selector(".x1iyjqo2 xdj266r xkrivgy x1gryazu x1yztbdb x1ykew4q xs9x0gt xc73u3c x18d9i69 x5ib6vp x19sv2k2 xt0jiz3 x17zrpsu x1m1r3dp x1d81r3v x1yj74s3", timeout=20000)
             await page.wait_for_selector("section")
         except Exception as e:
-            print(f"🔄 Sahifada article elementi topilmadi: {e}")
+            print(f"🔄 Sahifada section elementi topilmadi: {e}")
         except PlaywrightTimeoutError:
-            logger.error("🔄 Sahifada article elementi topilmadi")
+            logger.error("🔄 Sahifada section elementi topilmadi")
             return {"error": True, "message": "Invalid response from the server"}
         
         image_urls = set()
@@ -202,7 +202,7 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
             await page.wait_for_timeout(1000)
 
             # Yangi rasm yoki video chiqmagan bo‘lsa, to‘xtaymiz
-            images = await page.locator("article ._aagv img").all()
+            images = await page.locator("section ._aagv img").all()
             new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
             new_video_elements = await page.query_selector_all("video")
             new_video_urls = [
