@@ -146,12 +146,15 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
 
     try:
         await manager.init_browser()
-        page = await manager.context.new_page()
+        # page = await manager.context.new_page()
 
-        try:
-            await page.goto(post_url, timeout=15000)
-        except PlaywrightTimeoutError:
-            return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
+        # try:
+        #     await page.goto(post_url, timeout=15000)
+        # except PlaywrightTimeoutError:
+        #     return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
+        await manager.goto_reel(url=post_url)
+        page = manager.page_in
+
 
         try:
             await page.wait_for_selector("article", timeout=20000)

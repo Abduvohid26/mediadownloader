@@ -11,6 +11,7 @@ class BrowserManager:
         self.browser = None
         self.context = None
         self.page = None
+        self.page_in = None
 
     async def init_browser(self):
         if self.browser is None:
@@ -28,13 +29,26 @@ class BrowserManager:
             self.browser = await self.playwright.chromium.launch(**options)
             self.context = await self.browser.new_context()
             self.page = await self.context.new_page()
+            self.page_in = await self.context.new_page()
 
-            # Action bo'lsa, sahifaga o'tamiz
-            # if action == "instagram":
-            #     pass  # Siz bu yerda Instagram sahifasiga o'tishingiz mumkin
-            # else:
             await self.page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000)
-            await self.page.wait_for_load_state("domcontentloaded")
+            await self.page_in.goto("https://www.instagram.com", timeout=30000)
+            await self.page_in.wait_for_load_state("domcontentloaded")
+
+            print("🔄 Instagram va Ssinstagram sahifasi tayyor")
+
+    async def goto_reel(self, url):
+        if not self.page_in:
+            raise Exception("Brauzer hali ishga tushmagan")
+        
+        # URL oxirini ajratamiz
+        path = url.replace("https://www.instagram.com/", "")
+        full_url = f"https://www.instagram.com/{path}"
+        print(f"➡️ O'tilmoqda: {full_url}")
+        await self.page_in.goto(full_url, timeout=30000)
+        await self.page_in.wait_for_selector("article", timeout=15000)
+        print("✅ Reels sahifa yuklandi!")
+
 
     async def close_browser(self):
         print("❌ Brauzer yopilmoqda...")
@@ -50,6 +64,9 @@ class BrowserManager:
         if self.playwright:
             await self.playwright.stop()
             self.playwright = None
+        if self.page_in:
+            await self.page_in.close()
+            self.page_in = None
 
     async def restart_browser(self, action=None):
         await self.close_browser()
