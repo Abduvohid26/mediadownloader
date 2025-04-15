@@ -31,7 +31,7 @@ async def get_media(url: InstaSchema = Form(...)):
     if "stories" in url:
         data =  await get_instagram_story_urls(url, proxy_config)
         return data
-    media_urls = await download_instagram_media(url, proxy_config)
+    media_urls = await get_instagram_story_urls(url, proxy_config)
 
     if not media_urls:  
         return {"error": True, "message": "Invalid response from the server."}
