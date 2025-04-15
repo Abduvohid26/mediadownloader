@@ -15,7 +15,8 @@ class BrowserManager:
 
     async def init_browser(self):
         if self.browser is None:
-            print("🔄 Brauzer ishga tushirilmoqda...")
+            self.proxy_config = await get_proxy_config()
+            print("🔄 Brauzer ishga tushirilmoqda...", self.proxy_config, "Proxy")
 
             self.playwright = await async_playwright().start()
             options = {
@@ -30,7 +31,6 @@ class BrowserManager:
             self.context = await self.browser.new_context()
             self.page = await self.context.new_page()
             self.page_in = await self.context.new_page()
-            self.proxy_config = await get_proxy_config()
 
             await self.page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000)
             await self.page_in.goto("https://www.instagram.com", timeout=30000)
