@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 
 
 class BrowserManager:
-    def __init__(self, proxy_config=None, interval=600):
+    def __init__(self, interval, proxy_config=None):
         self.proxy_config = proxy_config
         self.interval = interval
 
@@ -12,7 +12,7 @@ class BrowserManager:
         self.context = None
         self.page = None
 
-    async def init_browser(self, action=None):
+    async def init_browser(self):
         if self.browser is None:
             print("🔄 Brauzer ishga tushirilmoqda...")
 
@@ -30,11 +30,11 @@ class BrowserManager:
             self.page = await self.context.new_page()
 
             # Action bo'lsa, sahifaga o'tamiz
-            if action == "instagram":
-                pass  # Siz bu yerda Instagram sahifasiga o'tishingiz mumkin
-            else:
-                await self.page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000)
-                await self.page.wait_for_load_state("domcontentloaded")
+            # if action == "instagram":
+            #     pass  # Siz bu yerda Instagram sahifasiga o'tishingiz mumkin
+            # else:
+            await self.page.goto("https://sssinstagram.com/ru/story-saver", timeout=10000)
+            await self.page.wait_for_load_state("domcontentloaded")
 
     async def close_browser(self):
         print("❌ Brauzer yopilmoqda...")

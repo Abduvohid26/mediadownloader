@@ -15,7 +15,7 @@ app = FastAPI()
 
 logger = logging.getLogger(__name__)
 
-manager = BrowserManager(proxy_config=None, interval=200)
+manager = BrowserManager(proxy_config=None, interval=100)
 
 
 async def get_instagram_story_urls(username, proxy_config):
@@ -145,7 +145,7 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
     print("Bizdan salomlar")
 
     try:
-        await manager.init_browser(action="instagram")
+        await manager.init_browser()
         page = await manager.context.new_page()
 
         try:
