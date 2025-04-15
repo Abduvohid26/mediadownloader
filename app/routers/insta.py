@@ -21,9 +21,28 @@ global_browser = {
     "playwright": None
 }
 
-async def init_browser(proxy_config=None):
+async def init_browser(proxy_config=None, action=None):
     print(global_browser, "GLOBAL")
     """ Brauzerni, contextni va sahifani oldindan ochib qo‘yish """
+    if global_browser["browser"] is None and action == "instagram":
+        print("🔄 Yangi brauzer ishga tushdi in...")
+        global_browser["playwright"] = await async_playwright().start()
+
+        options = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+        }
+        if proxy_config:
+            options["proxy"] = proxy_config
+
+        global_browser["browser"] = await global_browser["playwright"].chromium.launch(**options)
+        global_browser["context"] = await global_browser["browser"].new_context()
+        global_browser["page"] = await global_browser["context"].new_page()
+
+        return (global_browser["browser"],
+                global_browser["context"],
+                global_browser["page"],
+                global_browser["playwright"])
     if global_browser["browser"] is None:
         print("🔄 Yangi brauzer ishga tushdi...")
         global_browser["playwright"] = await async_playwright().start()
@@ -187,39 +206,126 @@ async def download_instagram_media(url, proxy_config):
 
 
 
-async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
+# async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
+#     print("Bizdan salomlar")
+
+#     try:
+#         browser, context, page, playwright = await init_browser(proxy_config)
+
+#         browser_args = {
+#             "headless": True,
+#             "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+#         }
+
+#         # if proxy_config:
+#         #     browser_args["proxy"] = proxy_config
+#         #
+#         # browser = await playwright.chromium.launch(**browser_args)
+#         page = await context.new_page()
+
+#         try:
+#             await page.goto(post_url, timeout=15000)
+#         except PlaywrightTimeoutError:
+#             return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
+
+#         try:
+#             await page.wait_for_selector("article", timeout=20000)
+#         except PlaywrightTimeoutError:
+#             logger.error("🔄 Sahifada article elementi topilmadi")
+#             return {"error": True, "message": "Invalid response from the server"}
+
+#         image_urls = set()
+#         video_data = []
+
+#         await page.mouse.click(10, 10)
+#         await page.wait_for_timeout(1500)
+#         caption = None
+#         caption_element = await page.query_selector('article span._ap3a')
+#         if caption_element:
+#             caption = await caption_element.inner_text()
+
+#         while True:
+#             # Rasmlar
+#             images = await page.locator("article ._aagv img").all()
+#             for img in images:
+#                 url = await img.get_attribute("src")
+#                 if url:
+#                     image_urls.add(url)
+
+#             # Videolar
+#             video_elements = await page.query_selector_all("video")
+#             for video in video_elements:
+#                 video_url = await video.get_attribute("src")
+#                 if video_url and not any(v["url"] == video_url for v in video_data):
+#                     video_data.append({"url": video_url, "type": "video"})
+
+#             # Keyingi tugmasini aniqlash
+#             next_button = page.locator("button[aria-label='Next']")
+#             try:
+#                 await next_button.wait_for(timeout=3000)
+#             except PlaywrightTimeoutError:
+#                 break  # Endi keyingi media yo‘q
+
+#             prev_count = len(image_urls) + len(video_data)
+
+#             await next_button.click()
+#             await page.wait_for_timeout(1000)
+
+#             # Yangi rasm yoki video chiqmagan bo‘lsa, to‘xtaymiz
+#             images = await page.locator("article ._aagv img").all()
+#             new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
+#             new_video_elements = await page.query_selector_all("video")
+#             new_video_urls = [
+#                 await video.get_attribute("src") for video in new_video_elements if await video.get_attribute("src")
+#             ]
+#             for url in new_video_urls:
+#                 if url and not any(v["url"] == url for v in video_data):
+#                     video_data.append({"url": url, "type": "video"})
+
+#             if len(new_urls - image_urls) == 0 and len(new_video_urls) == 0:
+#                 break
+
+#             image_urls.update(new_urls)
+
+#         if not image_urls and not video_data:
+#             logger.error(msg="🚫 Media URLlari topilmadi")
+#             return {"error": True, "message": "Invalid response from the server"}
+
+#         media_items = [{"type": "image", "download_url": url} for url in image_urls]
+#         media_items += video_data  # videolarni ham qo‘shamiz
+
+#         return {
+#             "error": False,
+#             "hosting": "instagram",
+#             "type": "album" if len(media_items) > 1 else media_items[0]["type"],
+#             "caption": caption,
+#             "medias": media_items
+#         }
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         return {"error": True, "message": "Invalid response from the server"}
+
+
+async def get_instagram_image_and_album_and_reels(post_url, proxy_config):
     print("Bizdan salomlar")
-
     try:
-        browser, context, page, playwright = await init_browser(proxy_config)
+        browser, context, page, playwright = await init_browser(proxy_config, action="instagram")
 
-        browser_args = {
-            "headless": True,
-            "args": ["--no-sandbox", "--disable-setuid-sandbox"]
-        }
-
-        # if proxy_config:
-        #     browser_args["proxy"] = proxy_config
-        #
-        # browser = await playwright.chromium.launch(**browser_args)
         page = await context.new_page()
 
         try:
-            await page.goto(post_url, timeout=15000)
+            await page.goto(post_url, timeout=15000)  # TEZROQ yuklash
+            await page.wait_for_selector("article", timeout=10000)
+            await page.wait_for_selector("article img, video", timeout=10000)
         except PlaywrightTimeoutError:
-            return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
-
-        try:
-            await page.wait_for_selector("article", timeout=20000)
-        except PlaywrightTimeoutError:
-            logger.error("🔄 Sahifada article elementi topilmadi")
-            return {"error": True, "message": "Invalid response from the server"}
+            return {"error": True, "message": "⏳ Sahifa yoki media elementlar chiqmadi"}
 
         image_urls = set()
         video_data = []
 
         await page.mouse.click(10, 10)
-        await page.wait_for_timeout(1500)
+        await page.wait_for_timeout(1000)  # Yengil kutish (aniq chiqsin)
+
         caption = None
         caption_element = await page.query_selector('article span._ap3a')
         if caption_element:
@@ -240,19 +346,17 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
                 if video_url and not any(v["url"] == video_url for v in video_data):
                     video_data.append({"url": video_url, "type": "video"})
 
-            # Keyingi tugmasini aniqlash
+            # "Next" tugmasi bor bo‘lsa – navbatdagi media
             next_button = page.locator("button[aria-label='Next']")
             try:
-                await next_button.wait_for(timeout=3000)
+                await next_button.wait_for(timeout=2000)
             except PlaywrightTimeoutError:
-                break  # Endi keyingi media yo‘q
+                break
 
             prev_count = len(image_urls) + len(video_data)
-
             await next_button.click()
             await page.wait_for_timeout(1000)
 
-            # Yangi rasm yoki video chiqmagan bo‘lsa, to‘xtaymiz
             images = await page.locator("article ._aagv img").all()
             new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
             new_video_elements = await page.query_selector_all("video")
@@ -269,11 +373,10 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
             image_urls.update(new_urls)
 
         if not image_urls and not video_data:
-            logger.error(msg="🚫 Media URLlari topilmadi")
-            return {"error": True, "message": "Invalid response from the server"}
+            return {"error": True, "message": "🚫 Hech qanday media topilmadi"}
 
         media_items = [{"type": "image", "download_url": url} for url in image_urls]
-        media_items += video_data  # videolarni ham qo‘shamiz
+        media_items += video_data
 
         return {
             "error": False,
@@ -282,9 +385,10 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
             "caption": caption,
             "medias": media_items
         }
+
     except Exception as e:
         print(f"Error: {e}")
-        return {"error": True, "message": "Invalid response from the server"}
+        return {"error": True, "message": "Noma'lum xatolik yuz berdi"}
 
 
 

@@ -5,10 +5,6 @@ import logging
 
 from sqlalchemy.util import await_only
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-ROOT_PATH = Path(__file__).parent.parent
-sender = APIRouter()
 
 import yt_dlp
 import os
@@ -18,6 +14,11 @@ from typing import Literal
 import cachetools
 from .proxy_route import get_proxy_config
 
+logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+ROOT_PATH = Path(__file__).parent.parent
+sender = APIRouter()
 CACHE = cachetools.TTLCache(maxsize=100, ttl=300)
 
 
