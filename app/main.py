@@ -18,7 +18,7 @@ from routers.insta_route import insta_router
 from routers.proxy_route import proxies
 from routers.yt_route import yt_router
 from routers.sender import sender
-from routers.insta import browser_keepalive, close_browser
+# from routers.insta import browser_keepalive, close_browser
 from routers.check import check_url
 # from routers.new_inta import checker_router
 
@@ -66,17 +66,17 @@ async def get_proxy_config():
             return None
 
 
-@app.on_event("startup")
-async def startup():
-    proxy_config = await get_proxy_config()
-    if proxy_config is None:
-        pass
-    else:
-        asyncio.create_task(browser_keepalive(proxy_config))
+# @app.on_event("startup")
+# async def startup():
+#     proxy_config = await get_proxy_config()
+#     if proxy_config is None:
+#         pass
+#     else:
+#         asyncio.create_task(browser_keepalive(proxy_config))
     
 
-@app.on_event("shutdown")
-async def shutdown():
-    await close_browser()
+# @app.on_event("shutdown")
+# async def shutdown():
+#     await close_browser()
 
 
