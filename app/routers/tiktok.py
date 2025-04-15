@@ -1141,7 +1141,6 @@ async def get_instagram_post_images(post_url: str, proxy_config: dict = None):
         except PlaywrightTimeoutError:
             return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
 
-        path = urlparse(post_url).path
 
         try:
             await page.wait_for_selector("article", timeout=15000)
@@ -1222,9 +1221,10 @@ async def get_instagram_post_images(post_url: str, proxy_config: dict = None):
             await browser.close()
         await playwright.stop()
 
-# # 🔍 Sinab ko‘rish (Asosiy)
+# 🔍 Sinab ko‘rish (Asosiy)
 # if __name__ == "__main__":
-#     # post_link = "https://www.instagram.com/p/DIV93Y2tLx7/?utm_source=ig_web_copy_link"  # Misol post
+#     # post_link = "   "  # Misol post
 #     post_link = "https://www.instagram.com/p/DIB8oINAbCk/?utm_source=ig_web_copy_link"
 #     result = asyncio.run(get_instagram_post_images(post_link, None))
 #     print(result)
+
