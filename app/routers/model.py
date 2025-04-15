@@ -46,7 +46,7 @@ class BrowserManager:
         full_url = f"https://www.instagram.com/{path}"
         print(f"➡️ O'tilmoqda: {full_url}")
         await self.page_in.goto(full_url, timeout=30000)
-        await self.page_in.wait_for_selector("article", timeout=15000)
+        # await self.page_in.wait_for_selector("article", timeout=15000)
         print("✅ Reels sahifa yuklandi!")
 
 

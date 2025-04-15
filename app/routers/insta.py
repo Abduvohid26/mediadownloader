@@ -155,9 +155,9 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
         await manager.goto_reel(url=post_url)
         page = manager.page_in
 
-
         try:
-            await page.wait_for_selector("article", timeout=20000)
+            # await page.wait_for_selector(".x1iyjqo2 xdj266r xkrivgy x1gryazu x1yztbdb x1ykew4q xs9x0gt xc73u3c x18d9i69 x5ib6vp x19sv2k2 xt0jiz3 x17zrpsu x1m1r3dp x1d81r3v x1yj74s3", timeout=20000)
+            await page.wait_for_selector("section")
         except Exception as e:
             print(f"🔄 Sahifada article elementi topilmadi: {e}")
         except PlaywrightTimeoutError:
@@ -170,13 +170,13 @@ async  def get_instagram_image_and_album_and_reels(post_url, proxy_config):
         await page.mouse.click(10, 10)
         await page.wait_for_timeout(1500)
         caption = None
-        caption_element = await page.query_selector('article span._ap3a')
+        caption_element = await page.query_selector('section span._ap3a')
         if caption_element:
             caption = await caption_element.inner_text()
 
         while True:
             # Rasmlar
-            images = await page.locator("article ._aagv img").all()
+            images = await page.locator("section ._aagv img").all()
             for img in images:
                 url = await img.get_attribute("src")
                 if url:
