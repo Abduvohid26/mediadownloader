@@ -127,10 +127,22 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
         # Qo'shimcha formatlarni qayta ishlash
         for data in info.get("formats", []):
             try:
-                if data.get("url") and data.get("ext") in ["mp4", "m4a"]:
+                if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]:
+                    type = None
+                    ext = data.get("ext")
+                    if ext in ["mp4", "m4a", "webm"]:
+                        if ext == "mp4":
+                            type = "video"
+                        elif ext == "webm" and data["audio_ext"]:
+                            type = "audio"
+                        elif ext == "webm" and data["video_ext"]:
+                            type = "video"
+                        else:
+                            type = "audio"
+
                     medias.append({
                         "quality": f"{data.get('format', 'unknown').split()[-1]}",
-                        "type": "video" if data.get("ext") == "mp4" else "audio",
+                        "type": type,
                         "ext": data.get("ext"),
                         "url": data.get("url")
                     })
