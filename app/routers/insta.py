@@ -51,8 +51,8 @@ async def init_browser(proxy_config=None, action=None):
             "headless": True,
             "args": ["--no-sandbox", "--disable-setuid-sandbox"]
         }
-        if proxy_config:
-            options["proxy"] = proxy_config
+        # if proxy_config:
+        #     options["proxy"] = proxy_config
 
         global_browser["browser"] = await global_browser["playwright"].chromium.launch(**options)
         global_browser["context"] = await global_browser["browser"].new_context()
