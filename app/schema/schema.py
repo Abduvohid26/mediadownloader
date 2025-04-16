@@ -12,6 +12,8 @@ class InstaSchema(BaseModel):
         }
     }
 
+
+
 class InstaStory(BaseModel):
     username: str
     model_config = {

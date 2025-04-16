@@ -16,7 +16,16 @@ async def yt_media(yt_url: str):
         return {"status": "error", "message": "Invalid response from the server."}
 
 
-
+@yt_router.post("/youtube/media/service/")
+async def yt_media_service(yt_url: YtSchema = Form(...)):
+    try:
+        data = await get_yt_data(url=yt_url.url.strip())
+        if not data:
+            return {"status": "error", "message": "Invalid response from the server."}
+        return data
+    except Exception as e:
+        print(f"Xatolik Yuz Berdi: {e}")
+        return {"status": "error", "message": "Invalid response from the server."}
 
 
 # @yt_router.get("/youtube/test/")

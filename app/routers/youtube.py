@@ -102,7 +102,6 @@ import redis
 from typing import Dict, Optional, List, Any
 import traceback
 async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Dict:
-    print(info)
     """
     YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
     """

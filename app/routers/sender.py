@@ -112,7 +112,6 @@ async def download_yt(request: Request, url: str, k):
 
     audio_opts = {
         'format': 'bestaudio[ext=m4a]/best',
-        # 'format': 'bestaudio/best',
         'outtmpl': f'{ROOT_PATH}/static/output/audio/%(id)s.%(ext)s',
         'noplaylist': True,
         'overwrites': True,
