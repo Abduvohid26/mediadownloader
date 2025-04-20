@@ -1303,39 +1303,112 @@ async def download_from_snaptik(url):
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context()
         page = await context.new_page()
+
         try:
             await page.goto("https://snaptik.app", timeout=15000)
             await page.wait_for_timeout(1000)
             await page.mouse.click(10, 10)  # Ekranning chap yuqori burchagiga klik
             await page.fill("input[name='url']", url)
             await page.click("button[type='submit'][aria-label='Get']")
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(4000)
 
+            result = {
+                "error": False,
+                "url": url,
+                "type": None,
+                "hosting": "tiktok",
+                "medias": []
+            }
+
+            # Video linklarni olish
             video_links_divs = await page.query_selector_all(".video-links")
-            if not video_links_divs:
-                print("❌ Video linklar topilmadi. Sayt bloklagan yoki link noto‘g‘ri.")
-            else:
-                for div in video_links_divs:
-                    a_tag = await div.query_selector("a")
-                    if a_tag:
-                        href = await a_tag.get_attribute("href")
-                        # print("✅ Topilgan video link:", href)
-                        return {
-                            "error": False,
-                            "url": url,
-                            "type": "video",
-                            "hosting": "tiktok",
-                            "medias": [
-                                {
-                                    "download_url": href,
-                                    "type": "video"
-                                }
-                            ]
-                        }
-                    else:
-                        print("⚠️ <a> tag topilmadi bu div ichida.")
+            for div in video_links_divs:
+                a_tag = await div.query_selector("a")
+                if a_tag:
+                    href = await a_tag.get_attribute("href")
+                    if href:
+                        result["medias"].append({
+                            "download_url": href,
+                            "type": "video"
+                        })
+                        result["type"] = "video"
+
+            # Rasm (image) linklarni olish
+            image_container = await page.query_selector(".is-multiline")
+            if image_container:
+                img_tags = await image_container.query_selector_all("img")
+                for img in img_tags:
+                    src = await img.get_attribute("src")
+                    if src:
+                        result["medias"].append({
+                            "download_url": src,
+                            "type": "image"
+                        })
+                        if not result["type"]:
+                            result["type"] = "image"
+
+            if not result["medias"]:
+                print("❌ Hech qanday media topilmadi. Sayt bloklagan bo'lishi mumkin.")
+                return None
+
+            return result
+
         except Exception as e:
             print("❌ Xatolik:", e)
-            
+            return None
 
-        await browser.close()
+        finally:
+            await browser.close()
+
+# async def download_from_snaptik(url):
+#     async with async_playwright() as p:
+#         browser = await p.chromium.launch(headless=True)
+#         context = await browser.new_context()
+#         page = await context.new_page()
+#         try:
+#             await page.goto("https://snaptik.app", timeout=15000)
+#             await page.wait_for_timeout(1000)
+#             await page.mouse.click(10, 10)  # Ekranning chap yuqori burchagiga klik
+#             await page.fill("input[name='url']", url)
+#             await page.click("button[type='submit'][aria-label='Get']")
+#             await page.wait_for_timeout(2000)
+#
+#             video_links_divs = await page.query_selector_all(".video-links")
+#             if not video_links_divs:
+#                 print("❌ Video linklar topilmadi. Sayt bloklagan yoki link noto‘g‘ri.")
+#                 return
+#             image_links_divs = await page.query_selector_all(".is-multiline")
+#             if not image_links_divs:
+#                 print("❌ Video linklar topilmadi. Sayt bloklagan yoki link noto‘g‘ri.")
+#                 return
+#             for img in image_links_divs:
+#                 img_tag = await img.query_selector_all("img")
+#                 if  img_tag:
+#                     src = await img_tag.get_attribute("src")
+#
+#
+#             else:
+#                 for div in video_links_divs:
+#                     a_tag = await div.query_selector("a")
+#                     if a_tag:
+#                         href = await a_tag.get_attribute("href")
+#                         # print("✅ Topilgan video link:", href)
+#                         return {
+#                             "error": False,
+#                             "url": url,
+#                             "type": "video",
+#                             "hosting": "tiktok",
+#                             "medias": [
+#                                 {
+#                                     "download_url": href,
+#                                     "type": "video"
+#                                 }
+#                             ]
+#                         }
+#                     else:
+#                         print("⚠️ <a> tag topilmadi bu div ichida.")
+#         except Exception as e:
+#             print("❌ Xatolik:", e)
+#
+#
+#         await browser.close()
