@@ -20,6 +20,7 @@ from routers.yt_route import yt_router
 from routers.sender import sender
 # from routers.insta import browser_keepalive, close_browser
 from routers.check import check_url
+from routers.tiktok_route import tk_router
 # from routers.new_inta import checker_router
 
 app = FastAPI()
@@ -29,6 +30,7 @@ app.include_router(proxies)
 app.include_router(yt_router)
 app.include_router(sender)
 app.include_router(check_url)
+app.include_router(tk_router)
 # DB sessiyasini olish
 # DB sessiyasini olish (Asinxron)
 async def get_db() -> AsyncSession:

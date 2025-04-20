@@ -1,0 +1,17 @@
+from fastapi import APIRouter, Form, HTTPException
+from fastapi.encoders import jsonable_encoder
+from schema.schema import YtSchema
+from .tiktok import download_from_snaptik
+tk_router = APIRouter()
+
+@tk_router.get("/tiktok/media/")
+async def yt_media(tk_url: str):
+    try:
+        data = await download_from_snaptik(tk_url.strip())
+        print(data, "Data")
+        if not data:
+            return {"status": "error", "message": "Invalid response from the server."}
+        return data
+    except Exception as e:
+        print(f"Xatolik Yuz Berdi: {e}")
+        return {"status": "error", "message": "Invalid response from the server."}

@@ -1117,109 +1117,109 @@ from playwright.async_api import async_playwright, TimeoutError as PlaywrightTim
 #         await playwright.stop()
 
 
-async def get_instagram_post_images(post_url: str, proxy_config: dict = None):
-    """
-    Instagram postidagi barcha rasm va video URLlarini olish (albumlarni ham to'liq yuklash)
-    """
-    playwright = await async_playwright().start()
-    browser = None
+# async def get_instagram_post_images(post_url: str, proxy_config: dict = None):
+#     """
+#     Instagram postidagi barcha rasm va video URLlarini olish (albumlarni ham to'liq yuklash)
+#     """
+#     playwright = await async_playwright().start()
+#     browser = None
 
-    try:
-        browser_args = {
-            "headless": False
-        }
+#     try:
+#         browser_args = {
+#             "headless": False
+#         }
 
-        if proxy_config:
-            browser_args["proxy"] = proxy_config
+#         if proxy_config:
+#             browser_args["proxy"] = proxy_config
 
-        browser = await playwright.chromium.launch(**browser_args)
-        context = await browser.new_context()
-        page = await context.new_page()
+#         browser = await playwright.chromium.launch(**browser_args)
+#         context = await browser.new_context()
+#         page = await context.new_page()
 
-        try:
-            await page.goto(post_url, timeout=15000)
-        except PlaywrightTimeoutError:
-            return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
+#         try:
+#             await page.goto(post_url, timeout=15000)
+#         except PlaywrightTimeoutError:
+#             return {"error": True, "message": "⏳ Sahifani yuklash muddati tugadi"}
 
 
-        try:
-            await page.wait_for_selector("article", timeout=15000)
-        except PlaywrightTimeoutError:
-            logger.error("🔄 Sahifada article elementi topilmadi")
-            return {"error": True, "message": "Invalid response from the server"}
+#         try:
+#             await page.wait_for_selector("article", timeout=15000)
+#         except PlaywrightTimeoutError:
+#             logger.error("🔄 Sahifada article elementi topilmadi")
+#             return {"error": True, "message": "Invalid response from the server"}
 
-        image_urls = set()
-        video_data = []
+#         image_urls = set()
+#         video_data = []
 
-        await page.mouse.click(10, 10)
-        await page.wait_for_timeout(1500)
-        caption = None
-        caption_element = await page.query_selector('article span._ap3a')
-        if caption_element:
-            caption = await caption_element.inner_text()
+#         await page.mouse.click(10, 10)
+#         await page.wait_for_timeout(1500)
+#         caption = None
+#         caption_element = await page.query_selector('article span._ap3a')
+#         if caption_element:
+#             caption = await caption_element.inner_text()
 
-        while True:
-            # Rasmlar
-            images = await page.locator("article ._aagv img").all()
-            for img in images:
-                url = await img.get_attribute("src")
-                if url:
-                    image_urls.add(url)
+#         while True:
+#             # Rasmlar
+#             images = await page.locator("article ._aagv img").all()
+#             for img in images:
+#                 url = await img.get_attribute("src")
+#                 if url:
+#                     image_urls.add(url)
 
-            # Videolar
-            video_elements = await page.query_selector_all("video")
-            for video in video_elements:
-                video_url = await video.get_attribute("src")
-                if video_url and not any(v["url"] == video_url for v in video_data):
-                    video_data.append({"url": video_url, "type": "video"})
+#             # Videolar
+#             video_elements = await page.query_selector_all("video")
+#             for video in video_elements:
+#                 video_url = await video.get_attribute("src")
+#                 if video_url and not any(v["url"] == video_url for v in video_data):
+#                     video_data.append({"url": video_url, "type": "video"})
 
-            # Keyingi tugmasini aniqlash
-            next_button = page.locator("button[aria-label='Next']")
-            try:
-                await next_button.wait_for(timeout=3000)
-            except PlaywrightTimeoutError:
-                break  # Endi keyingi media yo‘q
+#             # Keyingi tugmasini aniqlash
+#             next_button = page.locator("button[aria-label='Next']")
+#             try:
+#                 await next_button.wait_for(timeout=3000)
+#             except PlaywrightTimeoutError:
+#                 break  # Endi keyingi media yo‘q
 
-            prev_count = len(image_urls) + len(video_data)
+#             prev_count = len(image_urls) + len(video_data)
 
-            await next_button.click()
-            await page.wait_for_timeout(1000)
+#             await next_button.click()
+#             await page.wait_for_timeout(1000)
 
-            # Yangi rasm yoki video chiqmagan bo‘lsa, to‘xtaymiz
-            images = await page.locator("article ._aagv img").all()
-            new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
-            new_video_elements = await page.query_selector_all("video")
-            new_video_urls = [
-                await video.get_attribute("src") for video in new_video_elements if await video.get_attribute("src")
-            ]
-            for url in new_video_urls:
-                if url and not any(v["url"] == url for v in video_data):
-                    video_data.append({"url": url, "type": "video"})
+#             # Yangi rasm yoki video chiqmagan bo‘lsa, to‘xtaymiz
+#             images = await page.locator("article ._aagv img").all()
+#             new_urls = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
+#             new_video_elements = await page.query_selector_all("video")
+#             new_video_urls = [
+#                 await video.get_attribute("src") for video in new_video_elements if await video.get_attribute("src")
+#             ]
+#             for url in new_video_urls:
+#                 if url and not any(v["url"] == url for v in video_data):
+#                     video_data.append({"url": url, "type": "video"})
 
-            if len(new_urls - image_urls) == 0 and len(new_video_urls) == 0:
-                break
+#             if len(new_urls - image_urls) == 0 and len(new_video_urls) == 0:
+#                 break
 
-            image_urls.update(new_urls)
+#             image_urls.update(new_urls)
 
-        if not image_urls and not video_data:
-            logger.error(msg="🚫 Media URLlari topilmadi")
-            return {"error": True, "message": "Invalid response from the server"}
+#         if not image_urls and not video_data:
+#             logger.error(msg="🚫 Media URLlari topilmadi")
+#             return {"error": True, "message": "Invalid response from the server"}
 
-        media_items = [{"type": "image", "download_url": url} for url in image_urls]
-        media_items += video_data  # videolarni ham qo‘shamiz
+#         media_items = [{"type": "image", "download_url": url} for url in image_urls]
+#         media_items += video_data  # videolarni ham qo‘shamiz
 
-        return {
-            "error": False,
-            "hosting": "instagram",
-            "type": "album" if len(media_items) > 1 else media_items[0]["type"],
-            "caption": caption,
-            "medias": media_items
-        }
+#         return {
+#             "error": False,
+#             "hosting": "instagram",
+#             "type": "album" if len(media_items) > 1 else media_items[0]["type"],
+#             "caption": caption,
+#             "medias": media_items
+#         }
 
-    finally:
-        if browser:
-            await browser.close()
-        await playwright.stop()
+#     finally:
+#         if browser:
+#             await browser.close()
+#         await playwright.stop()
 
 # 🔍 Sinab ko‘rish (Asosiy)
 # if __name__ == "__main__":
@@ -1228,3 +1228,114 @@ async def get_instagram_post_images(post_url: str, proxy_config: dict = None):
 #     result = asyncio.run(get_instagram_post_images(post_link, None))
 #     print(result)
 
+
+
+
+# import asyncio
+# from selenium import webdriver
+# from selenium.webdriver.common.by import By
+# from selenium.webdriver.chrome.service import Service
+# from selenium.webdriver.common.keys import Keys
+# from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.common.by import By
+# from webdriver_manager.chrome import ChromeDriverManager
+# from concurrent.futures import ThreadPoolExecutor
+# import time
+
+# # Selenium jarayonini ishga tushirish
+# def run_selenium(url):
+#     options = Options()
+#     options.add_argument("--headless")
+#     options.add_argument("--no-sandbox")
+#     options.add_argument("--disable-dev-shm-usage")
+#     options.binary_location = "/usr/bin/chromium"  # yoki /usr/bin/google-chrome
+
+#     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+#     driver.get("https://snaptik.app")
+#     time.sleep(2)
+    
+#     body = driver.find_element(By.TAG_NAME, "body")
+#     body.send_keys(Keys.ESCAPE)
+
+#     input_box = driver.find_element(By.NAME, "url")
+#     input_box.send_keys(url)
+
+#     driver.find_element(By.XPATH, "//button[@type='submit' and @aria-label='Get']").click()
+#     time.sleep(5)
+
+#     try:
+#         driver.find_element(By.CLASS_NAME, "video-links")
+#         video_links_divs = driver.find_elements(By.CLASS_NAME, "video-links")
+        
+#         for div in video_links_divs:
+#             try:
+#                 a_tag = div.find_element(By.TAG_NAME, "a")
+#                 video_url = a_tag.get_attribute("href")
+#                 print("✅ Topilgan video link:", video_url)
+#             except:
+#                 print("⚠️ <a> tag topilmadi bu div ichida.")
+#     except:
+#         print("❌ Video linklar topilmadi. Balki sayt bloklagan yoki link noto‘g‘ri.")
+    
+#     driver.quit()
+
+# # Async wrapper
+# async def main(urls):
+#     with ThreadPoolExecutor() as executor:
+#         tasks = []
+#         for url in urls:
+#             task = asyncio.get_event_loop().run_in_executor(executor, run_selenium, url)
+#             tasks.append(task)
+#         await asyncio.gather(*tasks)
+
+
+# if __name__ == "__main__":
+#     urls = ["https://vt.tiktok.com/ZSr9A2KyN/"]
+#     asyncio.run(main(urls))
+
+
+
+import asyncio
+from playwright.async_api import async_playwright
+
+async def download_from_snaptik(url):
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context()
+        page = await context.new_page()
+        try:
+            await page.goto("https://snaptik.app", timeout=15000)
+            await page.wait_for_timeout(1000)
+            await page.mouse.click(10, 10)  # Ekranning chap yuqori burchagiga klik
+            await page.fill("input[name='url']", url)
+            await page.click("button[type='submit'][aria-label='Get']")
+            await page.wait_for_timeout(1000)
+
+            video_links_divs = await page.query_selector_all(".video-links")
+            if not video_links_divs:
+                print("❌ Video linklar topilmadi. Sayt bloklagan yoki link noto‘g‘ri.")
+            else:
+                for div in video_links_divs:
+                    a_tag = await div.query_selector("a")
+                    if a_tag:
+                        href = await a_tag.get_attribute("href")
+                        # print("✅ Topilgan video link:", href)
+                        return {
+                            "error": False,
+                            "url": url,
+                            "type": "video",
+                            "hosting": "tiktok",
+                            "medias": [
+                                {
+                                    "download_url": href,
+                                    "type": "video"
+                                }
+                            ]
+                        }
+                    else:
+                        print("⚠️ <a> tag topilmadi bu div ichida.")
+        except Exception as e:
+            print("❌ Xatolik:", e)
+            
+
+        await browser.close()

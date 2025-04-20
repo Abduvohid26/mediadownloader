@@ -34,9 +34,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxshmfence1 \
     fonts-liberation \
     netcat-openbsd \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    chromium-driver \
+    chromium
 
 RUN apt update && apt install -y ffmpeg
+
+RUN ln -s /usr/bin/chromium /usr/bin/google-chrome
 
 
 RUN pip install --upgrade pip
