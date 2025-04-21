@@ -5,7 +5,7 @@ from .tiktok import download_from_snaptik
 tk_router = APIRouter()
 
 @tk_router.get("/tiktok/media/")
-async def yt_media(tk_url: str):
+async def tk_media(tk_url: str):
     try:
         data = await download_from_snaptik(tk_url.strip())
         print(data, "Data")
