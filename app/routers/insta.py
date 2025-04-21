@@ -59,8 +59,11 @@ async def get_instagram_story_urls(username, proxy_config):
 
 
 async def get_video(info, url):
+    match = re.search(r'/p/([^/]+)/', url)
+    shortcode = match.group(1) if match else "unknown"
     data = {
         "error": False,
+        "shortcode": shortcode,
         "hosting": "instagram",
         "type": "video",
         "url": url,
@@ -76,8 +79,11 @@ async def get_video(info, url):
 
 
 async def get_video_album(info, url):
+    match = re.search(r'/p/([^/]+)/', url)
+    shortcode = match.group(1) if match else "unknown"
     data = {
         "error": False,
+        "shortcode": shortcode,
         "hosting": "instagram",
         "type": "album",
         "url": url,
