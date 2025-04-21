@@ -41,9 +41,11 @@ async def get_instagram_story_urls(username, proxy_config):
             return {"error": True, "message": "Invalid response from the server"}
 
         first_url = story_links[0] if story_links else ""
-
+        match = re.search(r'/p/([^/]+)/', username)
+        shortcode = match.group(1) if match else "unknown"
         return {
             "error": False,
+            "shortcode": shortcode,
             "hosting": "instagram",
             "type": "album" if len(story_links) != 1 else "image" if first_url.lower().endswith(".jpg") else "video",
             "url": username,
