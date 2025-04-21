@@ -23,9 +23,15 @@ class BrowserManager:
                 "headless": True,
                 "args": ["--no-sandbox", "--disable-setuid-sandbox"]
             }
-
             if self.proxy_config:
-                options["proxy"] = f"http://{self.proxy_config['username']}:{self.proxy_config['password']}@{self.proxy_config['server'].replace('http://', '')}"
+                options["proxy"] = {
+                    "server": f"http://{self.proxy_config['server'].replace('http://', '')}",
+                    "username": self.proxy_config['username'],
+                    "password": self.proxy_config['password']
+                }
+
+            # if self.proxy_config:
+            #     options["proxy"] = f"http://{self.proxy_config['username']}:{self.proxy_config['password']}@{self.proxy_config['server'].replace('http://', '')}"
 
             self.browser = await self.playwright.chromium.launch(**options)
             self.context = await self.browser.new_context()
