@@ -148,87 +148,89 @@ async def download_instagram_media(url, proxy_config):
 
 async def get_instagram_image_and_album_and_reels(post_url, proxy_config):
     print("📥 Media yuklanmoqda...")
-    async with async_playwright() as p:
-        options = {
-            "headless": True,
-            "args": ["--no-sandbox", "--disable-setuid-sandbox"],
-        }
+    # async with async_playwright() as p:
+    #     options = {
+    #         "headless": True,
+    #         "args": ["--no-sandbox", "--disable-setuid-sandbox"],
+    #     }
 
-        if proxy_config:
-            options["proxy"] = {
-                "server": f"http://{proxy_config['server'].replace('http://', '')}",
-                "username": proxy_config['username'],
-                "password": proxy_config['password']
-            }
+    #     if proxy_config:
+    #         options["proxy"] = {
+    #             "server": f"http://{proxy_config['server'].replace('http://', '')}",
+    #             "username": proxy_config['username'],
+    #             "password": proxy_config['password']
+    #         }
 
-        browser = await p.chromium.launch(**options)
-        context = await browser.new_context()
-        page = await context.new_page()
+    #     browser = await p.chromium.launch(**options)
+    #     context = await browser.new_context()
+    #     page = await context.new_page()
+
+    try:
+        await manager.init_browser()
+        page = await manager.context.new_page()
+        await page.goto(post_url, timeout=20000)
 
         try:
-            await page.goto(post_url, timeout=20000)
+            await page.wait_for_selector("section", timeout=20000)
+        except Exception as e:
+            print(f"❌ 'section' elementi topilmadi: {e}")
+            return {"error": True, "message": "Invalid response from the server"}
+            # return {"error": True, "message": "Sahifa elementlari topilmadi"}
+
+        await page.mouse.click(10, 10)
+        await page.wait_for_timeout(1500)
+
+        caption = None
+        if (caption_el := await page.query_selector('section span._ap3a')):
+            caption = await caption_el.inner_text()
+
+        image_urls, video_data = set(), []
+
+        while True:
+            images = await page.locator("section ._aagv img").all()
+            new_images = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
+            image_urls.update(new_images)
+
+            videos = await page.query_selector_all("video")
+            for video in videos:
+                video_url = await video.get_attribute("src")
+                if video_url and not any(v["url"] == video_url for v in video_data):
+                    video_data.append({"url": video_url, "type": "video"})
 
             try:
-                await page.wait_for_selector("section", timeout=20000)
-            except Exception as e:
-                print(f"❌ 'section' elementi topilmadi: {e}")
-                return {"error": True, "message": "Invalid response from the server"}
-                # return {"error": True, "message": "Sahifa elementlari topilmadi"}
+                next_btn = page.locator("button[aria-label='Next']")
+                await next_btn.wait_for(timeout=1500)
+                await next_btn.click()
+                await page.wait_for_timeout(1000)
+            except Exception:
+                break
 
-            await page.mouse.click(10, 10)
-            await page.wait_for_timeout(1500)
-
-            caption = None
-            if (caption_el := await page.query_selector('section span._ap3a')):
-                caption = await caption_el.inner_text()
-
-            image_urls, video_data = set(), []
-
-            while True:
-                images = await page.locator("section ._aagv img").all()
-                new_images = {await img.get_attribute("src") for img in images if await img.get_attribute("src")}
-                image_urls.update(new_images)
-
-                videos = await page.query_selector_all("video")
-                for video in videos:
-                    video_url = await video.get_attribute("src")
-                    if video_url and not any(v["url"] == video_url for v in video_data):
-                        video_data.append({"url": video_url, "type": "video"})
-
-                try:
-                    next_btn = page.locator("button[aria-label='Next']")
-                    await next_btn.wait_for(timeout=1500)
-                    await next_btn.click()
-                    await page.wait_for_timeout(1000)
-                except Exception:
-                    break
-
-            if not image_urls and not video_data:
-                return {"error": True, "message": "Invalid response from the server"}
-                # return {"error": True, "message": "Hech qanday media topilmadi"}
-
-            # Shortcode ni URL dan olamiz
-            match = re.search(r'/p/([^/]+)/', post_url)
-            shortcode = match.group(1) if match else "unknown"
-
-            medias = [{"type": "image", "download_url": url} for url in image_urls] + video_data
-
-            return {
-                "error": False,
-                "shortcode": shortcode,
-                "hosting": "instagram",
-                "type": "album" if len(medias) > 1 else medias[0]["type"],
-                "caption": caption,
-                "medias": medias
-            }
-
-        except Exception as e:
-            print(f"❗ Umumiy xatolik: {e}")
+        if not image_urls and not video_data:
             return {"error": True, "message": "Invalid response from the server"}
+            # return {"error": True, "message": "Hech qanday media topilmadi"}
+
+        # Shortcode ni URL dan olamiz
+        match = re.search(r'/p/([^/]+)/', post_url)
+        shortcode = match.group(1) if match else "unknown"
+
+        medias = [{"type": "image", "download_url": url} for url in image_urls] + video_data
+
+        return {
+            "error": False,
+            "shortcode": shortcode,
+            "hosting": "instagram",
+            "type": "album" if len(medias) > 1 else medias[0]["type"],
+            "caption": caption,
+            "medias": medias
+        }
+
+    except Exception as e:
+        print(f"❗ Umumiy xatolik: {e}")
+        return {"error": True, "message": "Invalid response from the server"}
             # return {"error": True, "message": "Xatolik yuz berdi"}
         
-        finally:
-            await browser.close()
+        # finally:
+        #     await browser.close()
 
 
 
