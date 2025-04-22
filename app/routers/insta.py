@@ -453,7 +453,8 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
             "shortcode": shortcode,
             "hosting": "instagram",
             "type": "album" if len(media_list) > 1 else media_list[0]["type"],
-            "caption": caption,
+            "url": post_url,
+            "title": caption,
             "medias": media_list
         }
 
