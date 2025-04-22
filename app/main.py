@@ -72,24 +72,31 @@ async def get_proxy_config():
 async def startup():
     proxy_config = await get_proxy_config()
     playwright = await async_playwright().start()
-    options = {
+
+    # Proxy bilan browser
+    proxy_options = {
         'headless': True,
         'args': ['--no-sandbox', '--disable-setuid-sandbox']
-
     }
     if proxy_config:
-        options['proxy'] = {
+        proxy_options['proxy'] = {
             'server': f"http://{proxy_config['server'].replace('http://', '')}",
             'username': proxy_config['username'],
             'password': proxy_config['password']
         }
-    browser = await playwright.chromium.launch(**options)
-    app.state.browser = browser
-    context = await browser.new_context()
-    app.state.context = context
-    context1 = await browser.new_context()
-    app.state.context1 = context1
-    print("Ishga tushdi", browser, context)
+    browser_proxy = await playwright.chromium.launch(**proxy_options)
+    context_proxy = await browser_proxy.new_context()
+    app.state.browser_proxy = browser_proxy
+    app.state.context_proxy = context_proxy
+
+    # Proxysiz browser
+    browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+    context_noproxy = await browser_noproxy.new_context()
+    app.state.browser_noproxy = browser_noproxy
+    app.state.context_noproxy = context_noproxy
+
+    print("✅ Proxy bilan:", browser_proxy, context_proxy)
+    print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
 @app.on_event("shutdown")
