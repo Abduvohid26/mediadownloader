@@ -86,8 +86,8 @@ async def startup():
         }
     browser_proxy = await playwright.chromium.launch(**proxy_options)
     context_proxy = await browser_proxy.new_context()
-    app.state.browser_proxy = browser_proxy
-    app.state.context_proxy = context_proxy
+    app.state.browser = browser_proxy
+    app.state.context = context_proxy
 
     # Proxysiz browser
     browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
