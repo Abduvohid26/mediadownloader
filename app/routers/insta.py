@@ -442,7 +442,9 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
                 break
 
         if not media_list:
-            return {"error": True, "message": "Hech qanday media topilmadi"}
+            print({"error": True, "message": "Hech qanday media topilmadi"})
+            return {"error": True, "message": "Invalid response from the server"}
+
 
         # Shortcode ni URL dan olamiz
         match = re.search(r'/p/([^/]+)/', post_url)
