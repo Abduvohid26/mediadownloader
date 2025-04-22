@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Form, HTTPException
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from schema.schema import TkSchema
 from .tiktok import download_from_snaptik
 tk_router = APIRouter()
 
 @tk_router.get("/tiktok/media/")
-async def tk_media(tk_url: str):
+async def tk_media(tk_url: str, request: Request):
     try:
-        data = await download_from_snaptik(tk_url.strip())
-        print(data, "Data")
+        context = request.app.state.context
+        data = await download_from_snaptik(tk_url.strip(), context)
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
         return data
@@ -19,10 +19,10 @@ async def tk_media(tk_url: str):
 
 
 @tk_router.post("/tiktok/media/service/", include_in_schema=False)
-async def tk_media_service(url: TkSchema = Form(...)):
+async def tk_media_service(request: Request, url: TkSchema = Form(...)):
     try:
-        data = await download_from_snaptik(url.url.strip())
-        print(data, "Data")
+        context = request.app.state.context
+        data = await download_from_snaptik(url.url.strip(), context)
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
         return data
