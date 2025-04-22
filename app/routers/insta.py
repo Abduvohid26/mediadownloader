@@ -225,9 +225,12 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
     print("📥 Media yuklanmoqda...")
     try:
         print(context, "context2", type(context))
-        page = await context.new_page()
-        print(page, "PAGE")
-        await page.goto(post_url)
+        try:
+            page = await context.new_page()
+        except Exception as e:
+            print(e, "Context error")
+            return {"error": True, "message": "Invalid response from the server"}
+
 
         try:
             await page.wait_for_selector("article", timeout=20000)
