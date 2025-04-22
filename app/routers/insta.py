@@ -241,7 +241,7 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
         media_list = []
 
         while True:
-            # 1. RASMLAR faqat article section ichidan olinadi
+            # 1. RASMLAR faqat article ichidan olinadi
             images = await page.locator("article ._aagv img").all()
             for img in images:
                 src = await img.get_attribute("src")
@@ -249,10 +249,10 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
                     media_list.append({
                         "type": "image",
                         "download_url": src,
-                        "thumb": src
+                        "thumbnail": src
                     })
 
-            # 2. VIDEOLAR faqat article section ichidan olinadi
+            # 2. VIDEOLAR faqat article ichidan olinadi
             videos = await page.locator("article video").all()
             for video in videos:
                 src = await video.get_attribute("src")
@@ -261,16 +261,15 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
                     media_list.append({
                         "type": "video",
                         "download_url": src,
-                        "thumbnail": poster or src  # fallback
+                        "thumbnail": poster or src
                     })
 
-            # 3. Keyingi media (album ichidagi)
-            try:
-                next_btn = page.locator("button[aria-label='Next']")
-                await next_btn.wait_for(timeout=1500)
+            # 3. Keyingi media (agar mavjud bo‘lsa)
+            next_btn = page.locator("button[aria-label='Next']")
+            if await next_btn.count() > 0:
                 await next_btn.click()
                 await page.wait_for_timeout(1000)
-            except Exception:
+            else:
                 break
 
         if not media_list:
