@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
 from sqlalchemy.exc import SQLAlchemyError
-
+from playwright.async_api import async_playwright
 
 from models.user import User, ProxyServers
 from database.database import SessionLocal
@@ -68,17 +68,30 @@ async def get_proxy_config():
             return None
 
 
-# @app.on_event("startup")
-# async def startup():
-#     proxy_config = await get_proxy_config()
-#     if proxy_config is None:
-#         pass
-#     else:
-#         asyncio.create_task(browser_keepalive(proxy_config))
-    
+@app.on_event("startup")
+async def startup():
+    proxy_config = await get_proxy_config()
+    playwright = await async_playwright().start()
+    options = {
+        'headless': True,
+        'args': ['--no-sandbox', '--disable-setuid-sandbox']
 
-# @app.on_event("shutdown")
-# async def shutdown():
-#     await close_browser()
+    }
+    if proxy_config:
+        options['proxy'] = {
+            'server': f"http://{proxy_config['server'].replace('http://', '')}",
+            'username': proxy_config['username'],
+            'password': proxy_config['password']
+        }
+    browser = await playwright.chromium.launch(**options)
+    app.state.browser = browser
+    context = await browser.new_context()
+    app.state.context = context
+    print("Ishga tushdi", browser, context)
 
 
+@app.on_event("shutdown")
+async def shutdown():
+    await app.state.browser.close()
+    await app.state.context.close()
+    print("Browser closes")
