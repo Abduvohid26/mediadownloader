@@ -87,6 +87,8 @@ async def startup():
     app.state.browser = browser
     context = await browser.new_context()
     app.state.context = context
+    context1 = await browser.new_context()
+    app.state.context1 = context1
     print("Ishga tushdi", browser, context)
 
 

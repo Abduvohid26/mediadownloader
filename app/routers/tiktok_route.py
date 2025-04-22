@@ -7,7 +7,7 @@ tk_router = APIRouter()
 @tk_router.get("/tiktok/media/")
 async def tk_media(tk_url: str, request: Request):
     try:
-        context = request.app.state.context
+        context = request.app.state.context1
         data = await download_from_snaptik(tk_url.strip(), context)
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
@@ -21,7 +21,7 @@ async def tk_media(tk_url: str, request: Request):
 @tk_router.post("/tiktok/media/service/", include_in_schema=False)
 async def tk_media_service(request: Request, url: TkSchema = Form(...)):
     try:
-        context = request.app.state.context
+        context = request.app.state.context1
         data = await download_from_snaptik(url.url.strip(), context)
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
