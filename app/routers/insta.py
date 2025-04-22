@@ -292,6 +292,7 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
         print(f"❗ Umumiy xatolik: {e}")
         return {"error": True, "message": "Invalid response from the server"}
 
+
 # async def get_instagram_image_and_album_and_reels(post_url, proxy_config):
 #     print("📥 Media yuklanmoqda...")
 #     # async with async_playwright() as p:

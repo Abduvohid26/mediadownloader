@@ -65,6 +65,80 @@ import re
 #         print(f"Xatolik yuz berdi: {e}")
 #         return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
 
+# async def get_instagram_image_and_album_and_reels(post_url, context):
+#     print("📥 Media yuklanmoqda...")
+#     try:
+#         page = await context.new_page()
+#         await page.goto(post_url)
+
+#         try:
+#             await page.wait_for_selector("article", timeout=20000)
+#         except Exception as e:
+#             print(f"❌ 'section' elementi topilmadi: {e}")
+#             return {"error": True, "message": "Invalid response from the server"}
+
+#         await page.mouse.click(10, 10)
+#         await page.wait_for_timeout(1500)
+
+#         caption = None
+#         if (caption_el := await page.query_selector('article span._ap3a')):
+#             caption = await caption_el.inner_text()
+
+#         media_list = []
+
+#         while True:
+#             # 1. RASMLAR faqat article section ichidan olinadi
+#             images = await page.locator("article ._aagv img").all()
+#             for img in images:
+#                 src = await img.get_attribute("src")
+#                 if src and not any(m["download_url"] == src for m in media_list):
+#                     media_list.append({
+#                         "type": "image",
+#                         "download_url": src,
+#                         "thumb": src
+#                     })
+
+#             # 2. VIDEOLAR faqat article section ichidan olinadi
+#             videos = await page.locator("article video").all()
+#             for video in videos:
+#                 src = await video.get_attribute("src")
+#                 poster = await video.get_attribute("poster")
+#                 if src and not any(m["download_url"] == src for m in media_list):
+#                     media_list.append({
+#                         "type": "video",
+#                         "download_url": src,
+#                         "thumbnail": poster or src  # fallback
+#                     })
+
+#             # 3. Keyingi media (album ichidagi)
+#             try:
+#                 next_btn = page.locator("button[aria-label='Next']")
+#                 await next_btn.wait_for(timeout=1500)
+#                 await next_btn.click()
+#                 await page.wait_for_timeout(1000)
+#             except Exception:
+#                 break
+
+#         if not media_list:
+#             return {"error": True, "message": "Hech qanday media topilmadi"}
+
+#         # Shortcode ni URL dan olamiz
+#         match = re.search(r'/p/([^/]+)/', post_url)
+#         shortcode = match.group(1) if match else "unknown"
+
+#         return {
+#             "error": False,
+#             "shortcode": shortcode,
+#             "hosting": "instagram",
+#             "type": "album" if len(media_list) > 1 else media_list[0]["type"],
+#             "caption": caption,
+#             "medias": media_list
+#         }
+
+#     except Exception as e:
+#         print(f"❗ Umumiy xatolik: {e}")
+#         return {"error": True, "message": "Invalid response from the server"}
+
 async def get_instagram_image_and_album_and_reels(post_url, context):
     print("📥 Media yuklanmoqda...")
     try:
@@ -87,7 +161,7 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
         media_list = []
 
         while True:
-            # 1. RASMLAR faqat article section ichidan olinadi
+            # 1. RASMLAR faqat article ichidan olinadi
             images = await page.locator("article ._aagv img").all()
             for img in images:
                 src = await img.get_attribute("src")
@@ -95,10 +169,10 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
                     media_list.append({
                         "type": "image",
                         "download_url": src,
-                        "thumb": src
+                        "thumbnail": src
                     })
 
-            # 2. VIDEOLAR faqat article section ichidan olinadi
+            # 2. VIDEOLAR faqat article ichidan olinadi
             videos = await page.locator("article video").all()
             for video in videos:
                 src = await video.get_attribute("src")
@@ -107,16 +181,15 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
                     media_list.append({
                         "type": "video",
                         "download_url": src,
-                        "thumbnail": poster or src  # fallback
+                        "thumbnail": poster or src
                     })
 
-            # 3. Keyingi media (album ichidagi)
-            try:
-                next_btn = page.locator("button[aria-label='Next']")
-                await next_btn.wait_for(timeout=1500)
+            # 3. Keyingi media (agar mavjud bo‘lsa)
+            next_btn = page.locator("button[aria-label='Next']")
+            if await next_btn.count() > 0:
                 await next_btn.click()
                 await page.wait_for_timeout(1000)
-            except Exception:
+            else:
                 break
 
         if not media_list:
@@ -144,7 +217,7 @@ async def check_itorya():
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=False, args=["--no-sandbox", "--disable-setuid-sandbox"])
         context = await browser.new_context()
-        result = await get_instagram_image_and_album_and_reels("https://www.instagram.com/p/DId3FY8RoNG/?utm_source=ig_web_copy_link", context)
+        result = await get_instagram_image_and_album_and_reels("https://www.instagram.com/p/DHgWbewsTwH/?utm_source=ig_web_copy_link", context)
         print(result)
         await browser.close()
 
