@@ -2,10 +2,10 @@ import asyncio
 from playwright.async_api import async_playwright
 
 async def download_from_snaptik(url, context):
-    # async with async_playwright() as p:
-        # browser = await p.chromium.launch(headless=True)
-        # context = await browser.new_context()
-        page = await context.new_page()
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context1 = await browser.new_context()
+        page = await context1.new_page()
 
 
         try:
@@ -80,3 +80,6 @@ async def download_from_snaptik(url, context):
         except Exception as e:
             print("❌ Xatolik:", e)
             return None
+
+        finally:
+            await browser.close()
