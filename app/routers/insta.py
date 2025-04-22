@@ -195,6 +195,7 @@ async def download_instagram_media(url, proxy_config, context):
             data = await get_video(info, url)
         else:
             print("Get media1")
+            print(context, "context")
             data = await get_instagram_image_and_album_and_reels(
                 post_url=url,
                 context=context,

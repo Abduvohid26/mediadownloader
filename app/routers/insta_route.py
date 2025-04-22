@@ -15,6 +15,7 @@ async def get_instagram_media(in_url: str, request: Request, db : AsyncSession =
     if "stories" in url:
         data =  await get_instagram_story_urls(url, context)
         return data
+    print(context, "context1")
     media_urls = await download_instagram_media(url, proxy_config, context)
 
     if not media_urls:  
