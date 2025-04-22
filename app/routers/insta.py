@@ -152,25 +152,25 @@ async def get_instagram_story_urls(username: str, context):
         
 
 
-    async def get_video(info, url):
-        match = re.search(r'/(?:p|reel|tv)/([A-Za-z0-9_-]+)', url)
-        shortcode = match.group(1) if match else "unknown"
-        data = {
-            "error": False,
-            "shortcode": shortcode,
-            "hosting": "instagram",
-            "type": "video",
-            "url": url,
-            "title": info.get("title", ""),
-            "medias": [
-                {
-                    "type": "video",
-                    "download_url": next((item['url'] for item in info.get('formats', []) if list(item.keys())[0] == 'url'),None),
-                    "thumb": info.get("thumbnail")
-                }
-            ]
-        }
-        return data
+async def get_video(info, url):
+    match = re.search(r'/(?:p|reel|tv)/([A-Za-z0-9_-]+)', url)
+    shortcode = match.group(1) if match else "unknown"
+    data = {
+        "error": False,
+        "shortcode": shortcode,
+        "hosting": "instagram",
+        "type": "video",
+        "url": url,
+        "title": info.get("title", ""),
+        "medias": [
+            {
+                "type": "video",
+                "download_url": next((item['url'] for item in info.get('formats', []) if list(item.keys())[0] == 'url'),None),
+                "thumb": info.get("thumbnail")
+            }
+        ]
+    }
+    return data
 
 
 async def get_video_album(info, url):
