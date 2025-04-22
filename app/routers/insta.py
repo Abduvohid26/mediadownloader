@@ -64,6 +64,7 @@ async def get_instagram_story_urls(username: str, context):
     """Instagram hikoyalarini yuklab olish funksiyasi."""
     try:
         page = await context.new_page()
+        print(page, "PAGE")
 
         # Saytga kirish
         await page.goto("https://sssinstagram.com/ru/story-saver")
