@@ -417,7 +417,7 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
                     media_list.append({
                         "type": "image",
                         "download_url": src,
-                        "thumbnail": src
+                        "thumb": src
                     })
 
             # 2. VIDEOLAR faqat article section ichidan olinadi
