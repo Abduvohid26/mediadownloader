@@ -224,6 +224,7 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
     print("📥 Media yuklanmoqda...")
     try:
         page = await context.new_page()
+        print(page, "PAGE")
         await page.goto(post_url)
 
         try:
