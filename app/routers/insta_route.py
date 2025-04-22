@@ -27,14 +27,16 @@ async def get_media(request: Request, url: InstaSchema = Form(...)):
     context = request.app.state.context
     proxy_config = await get_proxy_config()
     if "stories" in url:
-        data =  await get_instagram_story_urls(url, context)
+        data = await get_instagram_story_urls(url, context)
         return data
     media_urls = await download_instagram_media(url, proxy_config, context)
 
-    if not media_urls:  
+    if not media_urls:
         return {"error": True, "message": "Invalid response from the server."}
 
     return media_urls
+
+    # return media_urls
     # url = url.url.strip()
     # proxy_config = await get_proxy_config()
     # if "stories" in url:
