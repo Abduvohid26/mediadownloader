@@ -302,5 +302,91 @@ async def get_instagram_story_urls(username: str, context):
     finally:
         await browser.close()
     
-if __name__ == "__main__":
-    asyncio.run(get_instagram_story_urls())
+# if __name__ == "__main__":
+#     asyncio.run(get_instagram_story_urls())
+
+
+async def get_instagram_story_urls(username: str):
+    """Instagram hikoyalarini yuklab olish funksiyasi."""
+    async with async_playwright() as playwright:
+        # proxy = await get_proxy_config()
+        options = {
+            "headless": False,
+            "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+        }
+        # if proxy:
+        #     options["proxy"] = {
+        #         "server": f"http://{proxy['server'].replace('http://', '')}",
+        #         "username": proxy['username'],
+        #         "password": proxy['password']   
+        #     }
+
+        browser = await playwright.chromium.launch(**options)
+        page = await browser.new_page()
+        try:
+            # page = await context.new_page()
+            # print(page, "PAGE")
+
+            # Saytga kirish
+            await page.goto("https://sssinstagram.com/ru/story-saver")
+            print(page, "page")
+            # Inputga username qo'yish
+            await page.fill(".form__input", username)
+            await page.click(".form__submit")
+
+            # Yuklab olish tugmasi chiqquncha kutish
+            await page.wait_for_selector(".button__download", timeout=25000)
+
+            # Storylar uchun yuklab olish linklari
+            story_elements = await page.locator(".button__download").all()
+            story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
+
+            # Har bir media uchun thumbnail (prevyu rasm)
+            thumbnail_elements = await page.locator(".media-content__image").all()
+            thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
+
+            # Sarlavha olish
+            title_elements = await page.locator(".output-list__caption p").all()
+            titles = [await el.text_content() for el in title_elements]
+            title = titles[0] if titles else None
+
+            # Shortcode ajratish (ixtiyoriy, agar URLdan topilsa)
+            match = re.search(r'/p/([^/]+)/', username)
+            shortcode = match.group(1) if match else "unknown"
+
+            if not story_links:
+                return {"error": True, "message": "Hech qanday media topilmadi."}
+
+            # Media turini aniqlash
+            def detect_type(url: str):
+                return "image" if url.lower().endswith(".jpg") else "video"
+
+            # Media elementlarini to'plash (thumbnail bilan)
+            medias = []
+            for idx, url in enumerate(story_links):
+                medias.append({
+                    "type": detect_type(url),
+                    "download_url": url,
+                    "thumbnail": thumbnails[idx] if idx < len(thumbnails) else None
+                })
+
+            return {
+                "error": False,
+                "shortcode": shortcode,
+                "hosting": "instagram",
+                "type": "album" if len(story_links) > 1 else detect_type(story_links[0]),
+                "url": username,
+                "title": title,
+                "medias": medias,
+            }
+
+        except Exception as e:
+            print(f"Xatolik yuz berdi: {e}")
+            return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
+        
+        finally:
+            await browser.close()
+        
+
+if __name__ == '__main__':
+    asyncio.run(get_instagram_story_urls(username="https://www.instagram.com/stories/khakimov_042/"))
