@@ -16,7 +16,7 @@ async def get_instagram_media(in_url: str, request: Request, db : AsyncSession =
         data =  await get_instagram_story_urls(url, context)
         return data
     print(context, "context1")
-    media_urls = await download_instagram_media(url, proxy_config, context)
+    media_urls = await download_instagram_media(url, proxy_config, context, browser)
 
     if not media_urls:  
         return {"error": True, "message": "Invalid response from the server."}

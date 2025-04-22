@@ -170,7 +170,7 @@ async def get_video_album(info, url):
 
 
 
-async def download_instagram_media(url, proxy_config, context):
+async def download_instagram_media(url, proxy_config, context, browser):
     loop = asyncio.get_running_loop()
     try:
         # Async wrapper for yt-dlp extraction
@@ -199,6 +199,7 @@ async def download_instagram_media(url, proxy_config, context):
             data = await get_instagram_image_and_album_and_reels(
                 post_url=url,
                 context=context,
+                browser=browser
             )
         return data
 
@@ -209,7 +210,9 @@ async def download_instagram_media(url, proxy_config, context):
             print("Get media2")
             return await get_instagram_image_and_album_and_reels(
                 post_url=url,
-                context=context
+                context=context,
+                browser=browser
+
             )
         print("Error", error_message)
         return {"error": True, "message": "Invalid response from the server"}
@@ -221,16 +224,17 @@ async def download_instagram_media(url, proxy_config, context):
 
 
 
-async def get_instagram_image_and_album_and_reels(post_url, context):
+async def get_instagram_image_and_album_and_reels(post_url, context, browser):
     print("📥 Media yuklanmoqda...")
     try:
-        print(context, "context2", type(context))
-        try:
-            page = await context.new_page()
-        except Exception as e:
-            print(e, "Context error")
-            return {"error": True, "message": "Invalid response from the server"}
-
+        # print(context, "context2", type(context))
+        # try:
+        #     page = await context.new_page()
+        # except Exception as e:
+        #     print(e, "Context error")
+        #     return {"error": True, "message": "Invalid response from the server"}
+        page = await browser.new_page()
+        print(page, "PAGE")
 
         try:
             await page.wait_for_selector("article", timeout=20000)
