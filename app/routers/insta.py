@@ -224,6 +224,7 @@ async def download_instagram_media(url, proxy_config, context):
 async def get_instagram_image_and_album_and_reels(post_url, context):
     print("📥 Media yuklanmoqda...")
     try:
+        print(context, "context2")
         page = await context.new_page()
         print(page, "PAGE")
         await page.goto(post_url)
