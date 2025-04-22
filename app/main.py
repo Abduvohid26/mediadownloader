@@ -77,12 +77,12 @@ async def startup():
         'args': ['--no-sandbox', '--disable-setuid-sandbox']
 
     }
-    # if proxy_config:
-    #     options['proxy'] = {
-    #         'server': f"http://{proxy_config['server'].replace('http://', '')}",
-    #         'username': proxy_config['username'],
-    #         'password': proxy_config['password']
-    #     }
+    if proxy_config:
+        options['proxy'] = {
+            'server': f"http://{proxy_config['server'].replace('http://', '')}",
+            'username': proxy_config['username'],
+            'password': proxy_config['password']
+        }
     browser = await playwright.chromium.launch(**options)
     app.state.browser = browser
     context = await browser.new_context()
