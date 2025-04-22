@@ -324,7 +324,7 @@ async def download_instagram_media(url, proxy_config, context):
 
 
 
-async def get_instagram_image_and_album_and_reels(post_url, proxy_config):
+async def get_instagram_image_and_album_and_reels(post_url, context):
     print("📥 Media yuklanmoqda...")
 
     try:
