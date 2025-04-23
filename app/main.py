@@ -154,6 +154,7 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
     print("📥 Media yuklanmoqda...")
 
     try:
+        print(page, "one")
         match = re.search(r'https://www.instagram.com/p/([^/?]+)', post_url)
         if not match:
             return {"error": True, "message": "Invalid URL format"}
@@ -162,6 +163,8 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
         full_url = f"https://www.instagram.com{post_path}"
 
         await page.evaluate(f"window.location.href = '{full_url}'")
+
+        print(page, "Page")
 
         # Post yuklanishini kutamiz
         try:
