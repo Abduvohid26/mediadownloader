@@ -106,7 +106,7 @@ async def startup():
 
 
     for _ in range(10):
-        page = await context_noproxy.new_page()
+        page = await context_proxy.new_page()
         await page.goto("https://www.instagram.com", wait_until="load")
         await PAGE_POOL.put(page)
 
