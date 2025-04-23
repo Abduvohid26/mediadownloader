@@ -34,7 +34,7 @@ app.include_router(tk_router)
 
 
 PAGE_POOL = asyncio.Queue()
-MAX_PAGES = 15
+MAX_PAGES = 20
 
 
 # DB sessiyasini olish
@@ -105,7 +105,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(5):
+    for _ in range(10):
         page = await context_noproxy.new_page()
         await page.goto("https://www.instagram.com", wait_until="load")
         await PAGE_POOL.put(page)
@@ -113,7 +113,7 @@ async def startup():
     # Avtomatik yangilanish uchun sahifalar qo'shish
     async def add_page_loop():
         while True:
-            await asyncio.sleep(30)
+            await asyncio.sleep(1)
             if PAGE_POOL.qsize() < MAX_PAGES:
                 page = await context_noproxy.new_page()
                 await page.goto("https://www.instagram.com", wait_until="load")
@@ -147,7 +147,8 @@ async def scrape_instagram_post(url: str):
 
     finally:
         # await page.goto("about:blank")  # Sahifani tozalash
-        await PAGE_POOL.put(page)
+        if not page.is_closed():
+            await PAGE_POOL.put(page)
 
 async def get_instagram_image_and_album_and_reels(post_url, page: Page):
     print("📥 Media yuklanmoqda...")
