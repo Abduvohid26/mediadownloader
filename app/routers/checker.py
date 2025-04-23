@@ -145,17 +145,11 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
 
     try:
         page = await context.new_page()
-        await page.goto(post_url)
+        await page.goto(post_url, wait_until="domcontentloaded")  # sahifa to'liq yuklanishini kutadi
         print(page, "Page")
-        try:
-            await page.wait_for_selector("article", timeout=20000)
-        except Exception as e:
-            print(f"❌ 'section' elementi topilmadi: {e}")
-            return {"error": True, "message": "Invalid response from the server"}
-
-
-        await page.mouse.click(10, 10)
-        await page.wait_for_timeout(1500)
+        
+        # Sahifa yuklanganidan so'ng
+        await page.wait_for_selector("article", timeout=5000)
 
         caption = None
         if (caption_el := await page.query_selector('article span._ap3a')):
@@ -163,43 +157,39 @@ async def get_instagram_image_and_album_and_reels(post_url, context):
 
         media_list = []
 
-        while True:
-            # 1. RASMLAR faqat article section ichidan olinadi
-            images = await page.locator("article ._aagv img").all()
-            for img in images:
-                src = await img.get_attribute("src")
-                if src and not any(m["download_url"] == src for m in media_list):
-                    media_list.append({
-                        "type": "image",
-                        "download_url": src,
-                        "thumb": src
-                    })
+        # Rasmlar va videolarni olish
+        images = await page.locator("article ._aagv img").all()
+        for img in images:
+            src = await img.get_attribute("src")
+            if src and not any(m["download_url"] == src for m in media_list):
+                media_list.append({
+                    "type": "image",
+                    "download_url": src,
+                    "thumb": src
+                })
 
-            # 2. VIDEOLAR faqat article section ichidan olinadi
-            videos = await page.locator("article video").all()
-            for video in videos:
-                src = await video.get_attribute("src")
-                poster = await video.get_attribute("poster")
-                if src and not any(m["download_url"] == src for m in media_list):
-                    media_list.append({
-                        "type": "video",
-                        "download_url": src,
-                        "thumbnail": poster or src  # fallback
-                    })
+        videos = await page.locator("article video").all()
+        for video in videos:
+            src = await video.get_attribute("src")
+            poster = await video.get_attribute("poster")
+            if src and not any(m["download_url"] == src for m in media_list):
+                media_list.append({
+                    "type": "video",
+                    "download_url": src,
+                    "thumbnail": poster or src
+                })
 
-            # 3. Keyingi media (album ichidagi)
-            try:
-                next_btn = page.locator("button[aria-label='Next']")
-                await next_btn.wait_for(timeout=1500)
-                await next_btn.click()
-                await page.wait_for_timeout(1000)
-            except Exception:
-                break
+        # Agar album bo'lsa, keyingi sahifaga o'tish
+        next_btn = page.locator("button[aria-label='Next']")
+        try:
+            await next_btn.wait_for(timeout=1500)
+            await next_btn.click()
+        except Exception:
+            pass
 
         if not media_list:
             return {"error": True, "message": "Hech qanday media topilmadi"}
 
-        # Shortcode ni URL dan olamiz
         match = re.search(r'/p/([^/]+)/', post_url)
         shortcode = match.group(1) if match else "unknown"
 
@@ -224,10 +214,12 @@ async def check_itorya():
         print(result)
         await browser.close()
 
+# import time
+# if __name__ == "__main__":
 
-if __name__ == "__main__":
-    asyncio.run(check_itorya())
-
+#     curr_time = time.time() 
+#     asyncio.run(check_itorya())
+#     print("time", time.time() - curr_time)
 # async def get_instagram_story_urls(username: str, context):
 #     """Instagram hikoyalarini yuklab olish funksiyasi."""
 #     async with async_playwright() as playwright:
@@ -397,3 +389,48 @@ if __name__ == "__main__":
 #
 # if __name__ == '__main__':
 #     asyncio.run(get_instagram_story_urls(username="https://www.instagram.com/stories/khakimov_042/"))
+
+# from playwright.sync_api import sync_playwright
+# import json
+# import re
+
+# def get_instagram_media(post_url):
+#     with sync_playwright() as p:
+#         browser = p.chromium.launch(headless=False)  # headless rejimida
+#         page = browser.new_page()
+        
+#         page.goto(post_url, wait_until="domcontentloaded")  # Sahifa to'liq yuklanguncha kutish
+#         page.wait_for_selector('script:has-text("window._sharedData")')  # 'window._sharedData' elementini kutish
+
+#         # Sahifa yuklanganidan so'ng, kerakli skriptni olish
+#         script_tag = page.query_selector('script:has-text("window._sharedData")').inner_text()
+#         print(script_tag)
+
+#         # Skriptni parsing qilish
+#         json_str = re.search(r"window\._sharedData = (.*);", script_tag).group(1)
+#         data = json.loads(json_str)
+
+#         media = data["entry_data"]["PostPage"][0]["graphql"]["shortcode_media"]
+#         print(f"\n📎 URL: {post_url}")
+
+#         if media.get("edge_sidecar_to_children"):
+#             edges = media["edge_sidecar_to_children"]["edges"]
+#             for i, edge in enumerate(edges):
+#                 node = edge["node"]
+#                 if node["is_video"]:
+#                     print(f"  🎥 Video {i + 1}: {node['video_url']}")
+#                 else:
+#                     print(f"  🖼️ Image {i + 1}: {node['display_url']}")
+#         else:
+#             if media["is_video"]:
+#                 print(f"  🎥 Video: {media['video_url']}")
+#             else:
+#                 print(f"  🖼️ Image: {media['display_url']}")
+
+#         browser.close()
+
+# # Test qilish
+
+
+# # Test qilish
+# get_instagram_media("https://www.instagram.com/p/DIVG5civ8zK/?utm_source=ig_web_copy_link")

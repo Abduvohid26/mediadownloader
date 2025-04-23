@@ -36,34 +36,3 @@ async def get_media(request: Request, url: InstaSchema = Form(...)):
 
     return media_urls
 
-    # return media_urls
-    # url = url.url.strip()
-    # proxy_config = await get_proxy_config()
-    # if "stories" in url:
-    #     data =  await get_instagram_story_urls(url, proxy_config)
-    #     return data
-    # media_urls = await download_instagram_media(url, proxy_config)
-
-    # if not media_urls:  
-    #     return {"error": True, "message": "Invalid response from the server."}
-
-    # return media_urls
-
-
-
-# @insta_router.post("/instgram/stories")
-# async def get_stories(username: InstaStory = Form(...)):
-#     uname = username.username
-#     story_data = await get_instagram_story_urls(f"https://www.instagram.com/stories/{uname}/")
-#     if not story_data: 
-#         return {"success": False, "message": f"{uname} stories not found"}
-    
-#     data = {}
-#     c = 0
-#     for story in story_data:
-#         c += 1
-#         data[f'istory{c}'] = {
-#             "story_url": story["story_url"],
-#             "thumbnail_url": story["thumbnail_url"]
-#         }
-#     return data
