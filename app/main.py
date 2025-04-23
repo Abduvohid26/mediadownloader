@@ -34,7 +34,7 @@ app.include_router(tk_router)
 
 
 PAGE_POOL = asyncio.Queue()
-MAX_PAGES = 20
+MAX_PAGES = 10
 
 
 # DB sessiyasini olish
@@ -105,7 +105,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(10):
+    for _ in range(5):
         page = await context_noproxy.new_page()
         await page.goto("https://www.instagram.com", wait_until="load")
         await PAGE_POOL.put(page)
@@ -162,7 +162,12 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
         post_path = f"/p/{match.group(1)}/"
         full_url = f"https://www.instagram.com{post_path}"
 
-        await page.evaluate(f"window.location.href = '{full_url}'")
+        response = await page.evaluate(f"window.location.href = '{full_url}'")
+        if response:
+            print(response, "Res")
+            pass
+        else:
+            print(f"❌ Sahifa o'chirildi: {full_url}")
 
         print(page, "Page", full_url)
 
@@ -240,4 +245,4 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
         return {"error": True, "message": "Server error"}
 
     finally:
-        await page.close()
+        await PAGE_POOL.put(page)
