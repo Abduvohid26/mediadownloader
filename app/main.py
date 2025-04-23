@@ -21,6 +21,7 @@ from routers.sender import sender
 # from routers.insta import browser_keepalive, close_browser
 from routers.check import check_url
 from routers.tiktok_route import tk_router
+from fastapi.responses import FileResponse
 # from routers.new_inta import checker_router
 
 app = FastAPI()
@@ -46,6 +47,14 @@ async def get_db() -> AsyncSession:
 @app.get("/")
 async def read_root():
     return {"message": "Hello, World!"}
+
+@app.get("/screenshot")
+async def get_screenshot():
+    path = "/media_service/screenshot.png"
+    if not os.path.exists(path):
+        return {"error": "Fayl topilmadi"}
+    return FileResponse(path, media_type="image/png")
+
 
 async def get_proxy_config():
     async with SessionLocal() as db:
@@ -120,6 +129,8 @@ async def startup():
                 await PAGE_POOL.put(page)
 
     asyncio.create_task(add_page_loop())
+
+
 
 
 @app.on_event("shutdown")
