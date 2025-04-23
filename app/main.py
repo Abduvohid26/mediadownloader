@@ -171,6 +171,8 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
 
         print(page, "Page", full_url)
 
+        await page.screenshot("sreen.jpg", full_page=True)
+
         # Post yuklanishini kutamiz
         try:
             await page.wait_for_selector("article", timeout=20000)
