@@ -164,7 +164,7 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
 
         await page.evaluate(f"window.location.href = '{full_url}'")
 
-        print(page, "Page")
+        print(page, "Page", full_url)
 
         # Post yuklanishini kutamiz
         try:
