@@ -116,7 +116,7 @@ async def startup():
 
 
     for _ in range(5    ):
-        page = await context_noproxy.new_page()
+        page = await context_proxy.new_page()
         await page.goto("https://www.instagram.com", wait_until="load")
         await PAGE_POOL.put(page)
 
@@ -125,7 +125,7 @@ async def startup():
         while True:
             await asyncio.sleep(1)
             if PAGE_POOL.qsize() < MAX_PAGES:
-                page = await context_noproxy.new_page()
+                page = await context_proxy.new_page()
                 await page.goto("https://www.instagram.com", wait_until="load")
                 await PAGE_POOL.put(page)
 
@@ -138,6 +138,10 @@ async def startup():
 async def shutdown():
     await app.state.browser.close()
     await app.state.context.close()
+    await app.state.browser_noproxy.close()
+    await app.state.browser_proxy.close()
+    await app.state.context_noproxy.close()
+    await app.state.context_proxy.close()
     print("Browser closes")
 
 
@@ -177,24 +181,35 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
 
         # await page.evaluate(f"window.location.href = '{full_url}'")
         # await page.goto(full_url, timeout=20000, wait_until="load")
-        parsed_url = urlparse(post_url)
-        path_parts = parsed_url.path.strip("/").split("/")
+        # parsed_url = urlparse(post_url)
+        # path_parts = parsed_url.path.strip("/").split("/")
 
-        # Tekshirish: p bo'limi va shortcode borligini aniqlash
-        if len(path_parts) < 2 or path_parts[0] != "p":
-            return {"error": True, "message": "Invalid Instagram post URL"}
+        # # Tekshirish: p bo'limi va shortcode borligini aniqlash
+        # if len(path_parts) < 2 or path_parts[0] != "p":
+        #     return {"error": True, "message": "Invalid Instagram post URL"}
 
-        # Shortcode ajratiladi
-        shortcode = path_parts[1]
+        # # Shortcode ajratiladi
+        # shortcode = path_parts[1]
 
+        # full_url = f"https://www.instagram.com/p/{shortcode}/"
+
+        # await page.evaluate(f"window.location.href = '{full_url}'")
+
+
+        # print(page, "Page", full_url)
+        # await asyncio.sleep(1)
+        # await page.screenshot(path="screenshot.png", full_page=True)
+        match = re.search(r"https://www\.instagram\.com/p/([^/?#&]+)", post_url)
+        if not match:
+            return {"error": True, "message": "❌ Noto‘g‘ri URL format"}
+
+        shortcode = match.group(1)
         full_url = f"https://www.instagram.com/p/{shortcode}/"
 
-        await page.evaluate(f"window.location.href = '{full_url}'")
+        await page.goto(full_url, wait_until="networkidle")
 
 
-        print(page, "Page", full_url)
-        await asyncio.sleep(1)
-        await page.screenshot(path="screenshot.png", full_page=True)
+        await page.mouse.click(10, 10)
 
         # Post yuklanishini kutamiz
         try:
