@@ -36,7 +36,7 @@ services:
     image: redis:latest
     container_name: redis_
     ports:
-      - "6371:6371"
+      - "6379:6370"
 
 
 volumes:
