@@ -23,6 +23,7 @@ from routers.check import check_url
 from routers.tiktok_route import tk_router
 from fastapi.responses import FileResponse
 # from routers.new_inta import checker_router
+import os
 
 app = FastAPI()
 # app.include_router(checker_router)
@@ -114,7 +115,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(5):
+    for _ in range(5):  
         page = await context_noproxy.new_page()
         await page.goto("https://www.instagram.com", wait_until="load")
         await PAGE_POOL.put(page)
