@@ -210,7 +210,7 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
 
         await page.evaluate(f"window.location.href = '{full_url}'")
 
-        asyncio.sleep(1)
+        await asyncio.sleep(1)
 
 
         await page.mouse.click(10, 10)
