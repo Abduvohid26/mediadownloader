@@ -206,7 +206,11 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
         shortcode = match.group(1)
         full_url = f"https://www.instagram.com/p/{shortcode}/"
 
-        await page.goto(full_url, wait_until="networkidle")
+        # await page.goto(full_url, wait_until="networkidle")
+
+        await page.evaluate(f"window.location.href = '{full_url}'")
+
+        asyncio.sleep(1)
 
 
         await page.mouse.click(10, 10)
