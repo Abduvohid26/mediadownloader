@@ -174,8 +174,8 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
         post_path = f"/p/{match.group(1)}/"
         full_url = f"https://www.instagram.com{post_path}"
 
-        # response = await page.evaluate(f"window.location.href = '{full_url}'")
-        await page.goto(full_url, timeout=20000, wait_until="load")
+        await page.evaluate(f"window.location.href = '{full_url}'")
+        # await page.goto(full_url, timeout=20000, wait_until="load")
 
         print(page, "Page", full_url)
         await asyncio.sleep(2)
