@@ -188,13 +188,13 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
         shortcode = path_parts[1]
 
         full_url = f"https://www.instagram.com/p/{shortcode}/"
-        
+
         await page.evaluate(f"window.location.href = '{full_url}'")
 
 
         print(page, "Page", full_url)
-        await asyncio.sleep(2)
-        await page.screenshot(path="screenshot.png", full_page=True)
+        # await asyncio.sleep(2)
+        # await page.screenshot(path="screenshot.png", full_page=True)
 
         # Post yuklanishini kutamiz
         try:
