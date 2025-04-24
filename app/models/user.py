@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, BigInteger, Boolean
+from sqlalchemy import Column, Integer, String, BigInteger, Boolean, DateTime, Text
 from database.database import Base
 from enum import Enum
 from sqlalchemy_utils import ChoiceType
+import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -32,3 +33,13 @@ class ProxyServers(Base):
 
     
     
+class Download(Base):
+    __tablename__ = "downloads"
+
+    id = Column(String, primary_key=True, index=True)
+    original_url = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+    def __repr__(self):
+        return f"Download(original_url={self.original_url}, created_at={self.created_at})"
