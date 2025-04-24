@@ -146,6 +146,7 @@ async def shutdown():
 import time
 
 import re
+from urllib.parse import urlparse
 
 
 @app.get("/instagram/check/")
@@ -166,16 +167,30 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
     print("📥 Media yuklanmoqda...")
 
     try:
-        print(page, "one")
-        match = re.search(r'https://www.instagram.com/p/([^/?]+)', post_url)
-        if not match:
-            return {"error": True, "message": "Invalid URL format"}
+        # print(page, "one")
+        # match = re.search(r'https://www.instagram.com/p/([^/?]+)', post_url)
+        # if not match:
+        #     return {"error": True, "message": "Invalid URL format"}
 
-        post_path = f"/p/{match.group(1)}/"
-        full_url = f"https://www.instagram.com{post_path}"
+        # post_path = f"/p/{match.group(1)}/"
+        # full_url = f"https://www.instagram.com{post_path}"
 
-        await page.evaluate(f"window.location.href = '{full_url}'")
+        # await page.evaluate(f"window.location.href = '{full_url}'")
         # await page.goto(full_url, timeout=20000, wait_until="load")
+        parsed_url = urlparse(post_url)
+        path_parts = parsed_url.path.strip("/").split("/")
+
+        # Tekshirish: p bo'limi va shortcode borligini aniqlash
+        if len(path_parts) < 2 or path_parts[0] != "p":
+            return {"error": True, "message": "Invalid Instagram post URL"}
+
+        # Shortcode ajratiladi
+        shortcode = path_parts[1]
+
+        full_url = f"https://www.instagram.com/p/{shortcode}/"
+        
+        await page.evaluate(f"window.location.href = '{full_url}'")
+
 
         print(page, "Page", full_url)
         await asyncio.sleep(2)
