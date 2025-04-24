@@ -115,7 +115,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(5):  
+    for _ in range(5    ):
         page = await context_noproxy.new_page()
         await page.goto("https://www.instagram.com", wait_until="load")
         await PAGE_POOL.put(page)
@@ -194,7 +194,7 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
 
         print(page, "Page", full_url)
         await asyncio.sleep(1)
-        # await page.screenshot(path="screenshot.png", full_page=True)
+        await page.screenshot(path="screenshot.png", full_page=True)
 
         # Post yuklanishini kutamiz
         try:
