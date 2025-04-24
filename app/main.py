@@ -183,7 +183,7 @@ async def get_instagram_image_and_album_and_reels(post_url, page: Page):
 
         print(page, "Page", full_url)
         await asyncio.sleep(2)
-        await page.screenshot(path="screenshot.png", full_page=True)
+        await page.screenshot(path="media/screenshot.png", full_page=True)
 
         # Post yuklanishini kutamiz
         try:
