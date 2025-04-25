@@ -38,7 +38,6 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-PAGE_POOL = asyncio.Queue()
 MAX_PAGES = 10
 
 
@@ -92,7 +91,7 @@ async def download_file(id: str, db: AsyncSession = Depends(get_db)):
         iterfile(),
         media_type="application/octet-stream",
         headers={
-            "Content-Disposition": "attachment; filename=video_yukla"
+            "Content-Disposition": "attachment; filename=ziyotech"
         }
     )
 
@@ -151,25 +150,28 @@ async def startup():
     app.state.browser_noproxy = browser_noproxy
     app.state.context_noproxy = context_noproxy
 
+    PAGE_POOL = asyncio.Queue()
+    app.state.page_pool = PAGE_POOL
+    
+
     print("✅ Proxy bilan:", browser_proxy, context_proxy)
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    # for _ in range(5    ):
-    #     page = await context_noproxy.new_page()
-    #     await page.goto("https://www.instagram.com", wait_until="load")
-    #     await PAGE_POOL.put(page)
+    for _ in range(5):
+        page = await context_noproxy.new_page()
+        await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+        await PAGE_POOL.put(page)
 
-    # # Avtomatik yangilanish uchun sahifalar qo'shish
-    # async def add_page_loop():
-    #     while True:
-    #         await asyncio.sleep(1)
-    #         if PAGE_POOL.qsize() < MAX_PAGES:
-    #             page = await context_noproxy.new_page()
-    #             await page.goto("https://www.instagram.com", wait_until="load")
-    #             await PAGE_POOL.put(page)
-
-    # asyncio.create_task(add_page_loop())
+    # Avtomatik yangilanish uchun sahifalar qo'shish
+    async def add_page_loop():
+        while True:
+            await asyncio.sleep(1)
+            if PAGE_POOL.qsize() < MAX_PAGES:
+                page = await context_noproxy.new_page()
+                await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+                await PAGE_POOL.put(page)
+    asyncio.create_task(add_page_loop())
 
 
 
@@ -178,10 +180,10 @@ async def startup():
 async def shutdown():
     await app.state.browser.close()
     await app.state.context.close()
-    # await app.state.browser_noproxy.close()
-    # await app.state.browser_proxy.close()
-    # await app.state.context_noproxy.close()
-    # await app.state.context_proxy.close()
+    await app.state.browser_noproxy.close()
+    await app.state.browser_proxy.close()
+    await app.state.context_noproxy.close()
+    await app.state.context_proxy.close()
     print("Browser closes")
 
 
