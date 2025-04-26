@@ -15,10 +15,14 @@ async def get_instagram_media(in_url: str, request: Request, db : AsyncSession =
     url = in_url.strip()
     proxy_config = await get_proxy_config()
     if "stories" in url:
-        data =  await get_instagram_direct_links(url, db, request)
+        data = await get_instagram_direct_links(url, db, request)
         return data
+    elif "@" in url:
+        data = await get_instagram_direct_links(url, db, request)
+        return data
+        
     media_urls = await download_instagram_media(url, proxy_config, db, request)
-    
+
     if not media_urls:
         return {"error": True, "message": "Invalid response from the server."}
 
@@ -114,6 +118,10 @@ async def get_media(request: Request, url: InstaSchema = Form(...), db : AsyncSe
     if "stories" in url:
         data = await get_instagram_direct_links(url, db, request)
         return data
+    elif "@" in url:
+        data = await get_instagram_direct_links(url, db, request)
+        return data
+        
     media_urls = await download_instagram_media(url, proxy_config, db, request)
 
     if not media_urls:
