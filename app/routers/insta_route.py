@@ -18,6 +18,7 @@ async def get_instagram_media(in_url: str, request: Request, db : AsyncSession =
         data = await get_instagram_direct_links(url, db, request)
         return data
     elif "@" in url:
+        url = f"https://www.instagram.com/stories/{url[1:]}"
         data = await get_instagram_direct_links(url, db, request)
         return data
         
@@ -119,6 +120,7 @@ async def get_media(request: Request, url: InstaSchema = Form(...), db : AsyncSe
         data = await get_instagram_direct_links(url, db, request)
         return data
     elif "@" in url:
+        url = f"https://www.instagram.com/stories/{url[1:]}"
         data = await get_instagram_direct_links(url, db, request)
         return data
         
