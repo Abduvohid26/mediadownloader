@@ -70,6 +70,31 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+# @app.get("/download", include_in_schema=False)
+# async def download_file(id: str, db: AsyncSession = Depends(get_db)):
+#     result = await db.get(Download, id)
+#     if not result or not hasattr(result, 'original_url'):
+#         print("Status: Link not found or invalid")
+#         raise HTTPException(status_code=404, detail="Link not found or invalid")
+
+#     async def iterfile():
+#         async with httpx.AsyncClient(follow_redirects=True, timeout=None) as client:
+#             async with client.stream("GET", result.original_url) as response:
+#                 if response.status_code != 200:
+#                     print("Status: Cannot stream file")
+#                     raise HTTPException(status_code=404, detail="Cannot stream file")
+
+#                 async for chunk in response.aiter_bytes():
+#                     yield chunk
+
+#     return StreamingResponse(
+#         iterfile(),
+#         media_type="application/octet-stream",
+#         headers={
+#             "Content-Disposition": "attachment; filename=ziyotech"
+#         }
+#     )
+
 @app.get("/download", include_in_schema=False)
 async def download_file(id: str, db: AsyncSession = Depends(get_db)):
     result = await db.get(Download, id)
@@ -77,8 +102,11 @@ async def download_file(id: str, db: AsyncSession = Depends(get_db)):
         print("Status: Link not found or invalid")
         raise HTTPException(status_code=404, detail="Link not found or invalid")
 
-    async def iterfile():
-        async with httpx.AsyncClient(follow_redirects=True, timeout=None) as client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=None) as client:
+        head_resp = await client.head(result.original_url)
+        content_type = head_resp.headers.get("Content-Type", "application/octet-stream")
+
+        async def iterfile():
             async with client.stream("GET", result.original_url) as response:
                 if response.status_code != 200:
                     print("Status: Cannot stream file")
@@ -89,9 +117,9 @@ async def download_file(id: str, db: AsyncSession = Depends(get_db)):
 
     return StreamingResponse(
         iterfile(),
-        media_type="application/octet-stream",
+        media_type=content_type,  # bu yerda aniqlangan MIME turi
         headers={
-            "Content-Disposition": "attachment; filename=ziyotech"
+            "Content-Disposition": f"inline; filename=ziyotech"
         }
     )
 
