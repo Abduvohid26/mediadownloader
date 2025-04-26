@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 25
+MAX_PAGES = 15
 
 
 # DB sessiyasini olish
@@ -218,7 +218,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(1):
+    for _ in range(5):
         page = await context_noproxy.new_page()
         await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
         await PAGE_POOL.put(page)
@@ -226,12 +226,67 @@ async def startup():
     # Avtomatik yangilanish uchun sahifalar qo'shish
     async def add_page_loop():
         while True:
-            await asyncio.sleep(10)
+            await asyncio.sleep(1)
             if PAGE_POOL.qsize() < MAX_PAGES:
                 page = await context_noproxy.new_page()
                 await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
                 await PAGE_POOL.put(page)
     asyncio.create_task(add_page_loop())
+
+    asyncio.create_task(restart_browser_loop())
+
+
+
+# @app.on_event("startup")
+# async def startup():
+#     proxy_config = await get_proxy_config()
+#     playwright = await async_playwright().start()
+
+#     # Proxy bilan browser
+#     proxy_options = {
+#         'headless': True,
+#         'args': ['--no-sandbox', '--disable-setuid-sandbox']
+#     }
+#     if proxy_config:
+#         proxy_options['proxy'] = {
+#             'server': f"http://{proxy_config['server'].replace('http://', '')}",
+#             'username': proxy_config['username'],
+#             'password': proxy_config['password']
+#         }
+#     browser_proxy = await playwright.chromium.launch(**proxy_options)
+#     context_proxy = await browser_proxy.new_context()
+#     app.state.browser = browser_proxy
+#     app.state.context = context_proxy
+
+#     # Proxysiz browser
+#     browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+#     context_noproxy = await browser_noproxy.new_context()
+#     app.state.browser_noproxy = browser_noproxy
+#     app.state.context_noproxy = context_noproxy
+
+#     PAGE_POOL = asyncio.Queue()
+#     app.state.page_pool = PAGE_POOL
+
+#     print("✅ Proxy bilan:", browser_proxy, context_proxy)
+#     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
+
+#     # Sahifa yaratish
+#     page = await context_noproxy.new_page()
+#     await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+#     await PAGE_POOL.put(page)
+
+#     # Avtomatik page qo'shish
+#     async def add_page_loop():
+#         while True:
+#             await asyncio.sleep(1)
+#             if PAGE_POOL.qsize() < MAX_PAGES:
+#                 page = await app.state.context_noproxy.new_page()
+#                 await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+#                 await PAGE_POOL.put(page)
+#     asyncio.create_task(add_page_loop())
+
+#     # 🔥 Browser restart qilish
+#     asyncio.create_task(restart_browser_loop())
 
 
 
@@ -245,6 +300,40 @@ async def shutdown():
     await app.state.context_noproxy.close()
     await app.state.context_proxy.close()
     print("Browser closes")
+
+
+
+async def restart_browser_loop():
+    while True:
+        await asyncio.sleep(20 * 60)  # Har 3 soatda browserni yangilaymiz
+
+        print("♻️ Browser va context restart qilinmoqda...")
+
+        try:
+            # Eski browser va contextni tozalaymiz
+            await app.state.context_noproxy.close()
+            await app.state.browser_noproxy.close()
+
+            playwright = await async_playwright().start()
+            browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            context_noproxy = await browser_noproxy.new_context()
+            
+            app.state.browser_noproxy = browser_noproxy
+            app.state.context_noproxy = context_noproxy
+
+            # Eski PAGE_POOL ni yangilaymiz
+            PAGE_POOL = asyncio.Queue()
+            app.state.page_pool = PAGE_POOL
+
+            # 1 dona yangi sahifa ochamiz
+            page = await context_noproxy.new_page()
+            await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+            await PAGE_POOL.put(page)
+
+            print("♻️ Browser va context yangilandi!")
+        
+        except Exception as e:
+            print(f"♻️ Browserni yangilashda xatolik: {e}")
 
 
 
