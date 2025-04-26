@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 30
+MAX_PAGES = 25
 
 
 # DB sessiyasini olish
@@ -95,19 +95,52 @@ from sqlalchemy.ext.asyncio import AsyncSession
 #         }
 #     )
 
+# @app.get("/download", include_in_schema=False)
+# async def download_file(id: str, db: AsyncSession = Depends(get_db)):
+#     result = await db.get(Download, id)
+#     if not result or not hasattr(result, 'original_url'):
+#         print("Status: Link not found or invalid")
+#         raise HTTPException(status_code=404, detail="Link not found or invalid")
+
+#     async with httpx.AsyncClient(follow_redirects=True, timeout=None) as client:
+#         head_resp = await client.head(result.original_url)
+#         content_type = head_resp.headers.get("Content-Type", "application/octet-stream")
+
+#         async def iterfile():
+#             async with client.stream("GET", result.original_url) as response:
+#                 if response.status_code != 200:
+#                     print("Status: Cannot stream file")
+#                     raise HTTPException(status_code=404, detail="Cannot stream file")
+
+#                 async for chunk in response.aiter_bytes():
+#                     yield chunk
+
+#     return StreamingResponse(
+#         iterfile(),
+#         media_type=content_type,  # bu yerda aniqlangan MIME turi
+#         headers={
+#             "Content-Disposition": f"inline; filename=ziyotech"
+#         }
+#     )
+
+
 @app.get("/download", include_in_schema=False)
 async def download_file(id: str, db: AsyncSession = Depends(get_db)):
+    # Ma'lumotni bazadan olish
     result = await db.get(Download, id)
     if not result or not hasattr(result, 'original_url'):
         print("Status: Link not found or invalid")
         raise HTTPException(status_code=404, detail="Link not found or invalid")
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=None) as client:
-        head_resp = await client.head(result.original_url)
+    # HEAD so'rovni alohida client bilan yuboramiz
+    async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
+        head_resp = await head_client.head(result.original_url)
         content_type = head_resp.headers.get("Content-Type", "application/octet-stream")
 
-        async def iterfile():
-            async with client.stream("GET", result.original_url) as response:
+    async def iterfile():
+        # Streaming uchun clientni shu yerda ochamiz
+        async with httpx.AsyncClient(follow_redirects=True, timeout=None) as stream_client:
+            async with stream_client.stream("GET", result.original_url) as response:
                 if response.status_code != 200:
                     print("Status: Cannot stream file")
                     raise HTTPException(status_code=404, detail="Cannot stream file")
@@ -117,12 +150,11 @@ async def download_file(id: str, db: AsyncSession = Depends(get_db)):
 
     return StreamingResponse(
         iterfile(),
-        media_type=content_type,  # bu yerda aniqlangan MIME turi
+        media_type=content_type,
         headers={
-            "Content-Disposition": f"inline; filename=ziyotech"
+            "Content-Disposition": f'inline; filename="ziyotech"',
         }
     )
-
 
 async def get_proxy_config():
     async with SessionLocal() as db:
@@ -186,7 +218,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(10):
+    for _ in range(1):
         page = await context_noproxy.new_page()
         await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
         await PAGE_POOL.put(page)
@@ -194,7 +226,7 @@ async def startup():
     # Avtomatik yangilanish uchun sahifalar qo'shish
     async def add_page_loop():
         while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(10)
             if PAGE_POOL.qsize() < MAX_PAGES:
                 page = await context_noproxy.new_page()
                 await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
