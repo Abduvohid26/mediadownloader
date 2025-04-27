@@ -232,6 +232,7 @@ async def startup():
                     page = await context_proxy.new_page()
                     await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
                     await PAGE_POOL.put(page)
+                    print("✅ Page qo'shildi")
                 except Exception as e:
                     print(f"⚠️ Page yaratishda xato: {e}")
                     await page.close()  # Err
@@ -338,6 +339,7 @@ async def restart_browser_loop():
                 page = await context_noproxy.new_page()
                 await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
                 await PAGE_POOL.put(page)
+                print("✅ Page qo'shildi")
             except Exception as e:
                 print(f"⚠️ Page yaratishda xato11111111111111111: {e}")
                 await page.close()  # Err
