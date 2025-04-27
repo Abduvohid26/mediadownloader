@@ -228,9 +228,13 @@ async def startup():
         while True:
             await asyncio.sleep(1)
             if PAGE_POOL.qsize() < MAX_PAGES:
-                page = await context_proxy.new_page()
-                await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
-                await PAGE_POOL.put(page)
+                try:
+                    page = await context_proxy.new_page()
+                    await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+                    await PAGE_POOL.put(page)
+                except Exception as e:
+                    print(f"⚠️ Page yaratishda xato: {e}")
+                    await page.close()  # Err
     asyncio.create_task(add_page_loop())
 
     asyncio.create_task(restart_browser_loop())
