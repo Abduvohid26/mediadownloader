@@ -365,7 +365,7 @@ async def shutdown():
 
 async def restart_browser_loop():
     while True:
-        await asyncio.sleep(3 * 60)  # Har 3 soatda browserni yangilaymiz
+        await asyncio.sleep(20 * 60)  # Har 3 soatda browserni yangilaymiz
 
         print("♻️ Browser va context restart qilinmoqda...")
 
