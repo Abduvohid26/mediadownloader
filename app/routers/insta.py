@@ -335,7 +335,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
 
         def detect_type(url: str):
             return "image" if url.lower().endswith(".jpg") else "video"
-
+        
         medias = []
         for idx, media_url in enumerate(story_links):
             # 1. Media URL uchun
@@ -344,8 +344,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
             db.add(media_download)
 
             media_download_url = f"https://videoyukla.uz/download?id={media_id}"
-            # media_download_url = f"http:localhost:8000/download?id={media_id}"
-
+            
             # 2. Thumbnail bo‘lsa, alohida saqlaymiz
             thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
             thumb_download_url = None
@@ -354,14 +353,45 @@ async def get_instagram_direct_links(post_url: str, db, request):
                 thumb_id = await generate_unique_id()
                 thumb_download = Download(id=thumb_id, original_url=thumb_url)
                 db.add(thumb_download)
-                # thumb_download_url = f"http:localhost:8000/download?id={thumb_id}"
                 thumb_download_url = f"https://videoyukla.uz/download?id={thumb_id}"
 
+            # Agar type "image" bo'lsa, thumb_url bilan download_url ni bir xil qilib qo'yamiz
+            if detect_type(media_url) == "image" and thumb_download_url:
+                thumb_download_url = media_download_url  # Shuning uchun thumb va download_url bir xil bo'ladi
+            
             medias.append({
                 "type": detect_type(media_url),
                 "download_url": media_download_url,
                 "thumb": thumb_download_url
             })
+
+
+        # medias = []
+        # for idx, media_url in enumerate(story_links):
+        #     # 1. Media URL uchun
+        #     media_id = await generate_unique_id()
+        #     media_download = Download(id=media_id, original_url=media_url)
+        #     db.add(media_download)
+
+        #     media_download_url = f"https://videoyukla.uz/download?id={media_id}"
+        #     # media_download_url = f"http:localhost:8000/download?id={media_id}"
+
+        #     # 2. Thumbnail bo‘lsa, alohida saqlaymiz
+        #     thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
+        #     thumb_download_url = None
+        #     print(thumb_url, "THUMB")
+        #     if thumb_url:
+        #         thumb_id = await generate_unique_id()
+        #         thumb_download = Download(id=thumb_id, original_url=thumb_url)
+        #         db.add(thumb_download)
+        #         # thumb_download_url = f"http:localhost:8000/download?id={thumb_id}"
+        #         thumb_download_url = f"https://videoyukla.uz/download?id={thumb_id}"
+
+        #     medias.append({
+        #         "type": detect_type(media_url),
+        #         "download_url": media_download_url,
+        #         "thumb": thumb_download_url
+        #     })
 
         await db.commit()
 
