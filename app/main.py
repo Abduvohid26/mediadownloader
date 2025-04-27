@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 20
+MAX_PAGES = 10
 
 
 # DB sessiyasini olish
@@ -269,7 +269,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(10):
+    for _ in range(5):
         page = await context_proxy.new_page()
         await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
         await PAGE_POOL.put(page)
@@ -277,7 +277,7 @@ async def startup():
     # Avtomatik yangilanish uchun sahifalar qo'shish
     async def add_page_loop():
         while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
             if PAGE_POOL.qsize() < MAX_PAGES:
                 try:
                     page = await context_proxy.new_page()

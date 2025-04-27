@@ -311,7 +311,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
         await page.click(".form__submit")
 
         # Yuklab olish tugmasi chiqquncha kutish
-        await page.wait_for_selector(".button__download", state="attached", timeout=20000)
+        await page.wait_for_selector(".button__download", state="attached", timeout=10000)
 
         # Storylar uchun yuklab olish linklari
         story_elements = await page.locator(".button__download").all()
