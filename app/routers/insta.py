@@ -352,9 +352,11 @@ async def get_instagram_direct_links(post_url: str, db, request):
             print(thumb_url, "THUMB")
             if thumb_url:
                 if thumb_url.startswith("data:image"):
+                    corrected_data = thumb_url + "=" * ((4 - len(thumb_url) % 4) % 4)
                     print("data:image@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                     decode_data = base64.b64decode(thumb_url)
-                    print(decode_data, "DECODED DATA")
+
+                    print(corrected_data, "DECODED DATA")
                 thumb_id = await generate_unique_id()
                 thumb_download = Download(id=thumb_id, original_url=thumb_url)
                 db.add(thumb_download)
