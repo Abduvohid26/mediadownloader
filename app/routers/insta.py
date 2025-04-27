@@ -366,6 +366,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
             })
 
 
+
         # medias = []
         # for idx, media_url in enumerate(story_links):
         #     # 1. Media URL uchun
@@ -412,7 +413,15 @@ async def get_instagram_direct_links(post_url: str, db, request):
 
     finally:
         if not page.is_closed():
-            await page.close()
+            error_message = await page.query_selector('.error-message')
+
+            if error_message:
+                print("⚠️ Error message topildi, sahifa yopilyapti...")
+                await page.close()
+            else:
+                await page.evaluate('document.querySelector(".form__input").value = ""')
+
+                await page_pool.put(page)
 
 
 

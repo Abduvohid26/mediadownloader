@@ -263,7 +263,7 @@ async def startup():
 
     PAGE_POOL = asyncio.Queue()
     app.state.page_pool = PAGE_POOL
-    
+
 
     print("✅ Proxy bilan:", browser_proxy, context_proxy)
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
@@ -377,7 +377,7 @@ async def restart_browser_loop():
             playwright = await async_playwright().start()
             browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
             context_noproxy = await browser_noproxy.new_context()
-            
+
             app.state.browser_noproxy = browser_noproxy
             app.state.context_noproxy = context_noproxy
 
@@ -388,14 +388,14 @@ async def restart_browser_loop():
             # 1 dona yangi sahifa ochamiz
             try:
                 page = await context_noproxy.new_page()
-                await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+                await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
                 await PAGE_POOL.put(page)
                 print("✅ Page qo'shildi")
             except Exception as e:
                 print(f"⚠️ Page yaratishda xato11111111111111111: {e}")
                 await page.close()  # Err
             print("♻️ Browser va context yangilandi!")
-        
+
         except Exception as e:
             print(f"♻️ Browserni yangilashda xatolik: {e}")
 ###############################################33\\\\
