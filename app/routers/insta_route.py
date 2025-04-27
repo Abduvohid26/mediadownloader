@@ -130,3 +130,82 @@ async def get_media(request: Request, url: InstaSchema = Form(...), db : AsyncSe
         return {"error": True, "message": "Invalid response from the server."}
 
     return media_urls
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@insta_router.post("/instagram/check")
+async def get_instagram_direct_links(post_url: str, request: Request):
+    """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
+    # page_pool = request.app.state.page_pool
+    # page = await page_pool.get()
+    context = request.app.state.context_noproxy
+    page = await context.new_page()
+    print(page, "PAGE")
+
+    try:
+        await page.goto("https://sssinstagram.com/ru/story-saver")
+        await page.fill(".form__input", post_url)
+        await page.click(".form__submit")
+
+        # Yuklab olish tugmasi chiqquncha kutish
+        await page.wait_for_selector(".button__download", state="attached", timeout=25000)
+
+        # Storylar uchun yuklab olish linklari
+        story_elements = await page.locator(".button__download").all()
+        story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
+
+        # Har bir media uchun thumbnail (prevyu rasm)
+        thumbnail_elements = await page.locator(".media-content__image").all()
+        thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
+
+        # Sarlavha olish
+        title_elements = await page.locator(".output-list__caption p").all()
+        titles = [await el.text_content() for el in title_elements]
+        title = titles[0] if titles else None
+
+        # Shortcode ajratish (ixtiyoriy, agar URLdan topilsa)
+        match = re.search(r'/p/([^/]+)/', post_url)
+        shortcode = match.group(1) if match else "unknown"
+
+        if not story_links:
+            return {"error": True, "message": "Hech qanday media topilmadi."}
+
+        # Media turini aniqlash
+        def detect_type(url: str):
+            return "image" if url.lower().endswith(".jpg") else "video"
+
+        # Media elementlarini to'plash (thumbnail bilan)
+        medias = []
+        for idx, url in enumerate(story_links):
+            medias.append({
+                "type": detect_type(url),
+                "download_url": url,
+                "thumb": thumbnails[idx] if idx < len(thumbnails) else None
+            })
+
+        return {
+            "error": False,
+            "shortcode": shortcode,
+            "hosting": "instagram",
+            "type": "album" if len(story_links) > 1 else detect_type(story_links[0]),
+            "url": post_url,
+            "title": title,
+            "medias": medias,
+        }
+
+    except Exception as e:
+        print(f"Xatolik yuz berdi: {e}")
+        return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
+
+    
