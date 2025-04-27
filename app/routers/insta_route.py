@@ -145,7 +145,7 @@ async def get_media(request: Request, url: InstaSchema = Form(...), db : AsyncSe
 
 
 @insta_router.post("/instagram/check")
-async def get_instagram_direct_links(post_url: str, request: Request):
+async def get_instagram_direct_links_route(post_url: str, request: Request):
     """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
     # page_pool = request.app.state.page_pool
     # page = await page_pool.get()
