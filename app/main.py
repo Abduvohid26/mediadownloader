@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 10
+MAX_PAGES = 25
 
 
 # DB sessiyasini olish
@@ -365,7 +365,7 @@ async def shutdown():
 
 async def restart_browser_loop():
     while True:
-        await asyncio.sleep(5 * 60)  # Har 3 soatda browserni yangilaymiz
+        await asyncio.sleep(3 * 60)  # Har 3 soatda browserni yangilaymiz
 
         print("♻️ Browser va context restart qilinmoqda...")
 
