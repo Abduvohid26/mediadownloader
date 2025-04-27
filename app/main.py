@@ -271,7 +271,7 @@ async def startup():
 
     for _ in range(5):
         page = await context_proxy.new_page()
-        await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+        await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
         await PAGE_POOL.put(page)
 
     # Avtomatik yangilanish uchun sahifalar qo'shish
@@ -281,7 +281,7 @@ async def startup():
             if PAGE_POOL.qsize() < MAX_PAGES:
                 try:
                     page = await context_proxy.new_page()
-                    await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+                    await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
                     await PAGE_POOL.put(page)
                     print("✅ Page qo'shildi")
                 except Exception as e:
