@@ -622,7 +622,7 @@ async def startup():
     page_manager = PagePoolManager(
         context=context_noproxy,
         url="https://sssinstagram.com/ru/story-saver",
-        max_pages=5
+        max_pages=20
     )
     await page_manager.start()
     app.state.page_manager = page_manager
