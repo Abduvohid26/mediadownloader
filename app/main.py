@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 15
+MAX_PAGES = 25
 
 
 # DB sessiyasini olish
@@ -218,8 +218,8 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(5):
-        page = await context_noproxy.new_page()
+    for _ in range(10):
+        page = await context_proxy.new_page()
         await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
         await PAGE_POOL.put(page)
 
@@ -228,7 +228,7 @@ async def startup():
         while True:
             await asyncio.sleep(1)
             if PAGE_POOL.qsize() < MAX_PAGES:
-                page = await context_noproxy.new_page()
+                page = await context_proxy.new_page()
                 await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
                 await PAGE_POOL.put(page)
     asyncio.create_task(add_page_loop())
