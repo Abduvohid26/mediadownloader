@@ -155,6 +155,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 #             "Content-Disposition": f'inline; filename="ziyotech"',
 #         }
 #     )
+from urllib.parse import urlparse
 
 @app.get("/download", include_in_schema=False)
 async def download_file(id: str, db: AsyncSession = Depends(get_db)):
@@ -164,14 +165,20 @@ async def download_file(id: str, db: AsyncSession = Depends(get_db)):
         print("Status: Link not found or invalid")
         raise HTTPException(status_code=404, detail="Link not found or invalid")
 
-    # URLni to'g'ri formatlash
-    if not result.original_url.startswith(('http://', 'https://')):
-        result.original_url = 'http://' + result.original_url  # Protokolni qo'shish
+    # URLni to'g'ri formatlash va protokolda xato yo'qligini tekshirish
+    url = result.original_url
+    if not url.startswith(('http://', 'https://')):
+        url = 'http://' + url  # Protokolni qo'shish
+
+    # URL formatini tekshirish
+    parsed_url = urlparse(url)
+    if not parsed_url.netloc:  # Agar host (domain) bo'lmasa
+        raise HTTPException(status_code=400, detail="Invalid URL: missing domain")
 
     # HEAD so'rovni yuborish
     async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
         try:
-            head_resp = await head_client.head(result.original_url)
+            head_resp = await head_client.head(url)
             head_resp.raise_for_status()  # 4xx yoki 5xx xatoliklari uchun
             content_type = head_resp.headers.get("Content-Type", "application/octet-stream")
         except httpx.HTTPStatusError as e:
@@ -184,7 +191,7 @@ async def download_file(id: str, db: AsyncSession = Depends(get_db)):
     # Faylni uzatish uchun generator
     async def iterfile():
         async with httpx.AsyncClient(follow_redirects=True, timeout=None) as stream_client:
-            async with stream_client.stream("GET", result.original_url) as response:
+            async with stream_client.stream("GET", url) as response:
                 if response.status_code != 200:
                     print("Status: Cannot stream file")
                     raise HTTPException(status_code=404, detail="Cannot stream file")
