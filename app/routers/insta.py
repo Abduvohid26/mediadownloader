@@ -294,7 +294,7 @@ manager = BrowserManager(interval=100)
 #         return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
 
 
-
+import base64
 
 async def get_instagram_direct_links(post_url: str, db, request):
     """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
@@ -351,6 +351,10 @@ async def get_instagram_direct_links(post_url: str, db, request):
             thumb_download_url = None
             print(thumb_url, "THUMB")
             if thumb_url:
+                if thumb_url.startswith("data:image"):
+                    print("data:image@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                    decode_data = base64.b64decode(thumb_url)
+                    print(decode_data, "DECODED DATA")
                 thumb_id = await generate_unique_id()
                 thumb_download = Download(id=thumb_id, original_url=thumb_url)
                 db.add(thumb_download)
