@@ -413,15 +413,16 @@ async def get_instagram_direct_links(post_url: str, db, request):
 
     finally:
         if not page.is_closed():
-            error_message = await page.query_selector('.error-message')
-
-            if error_message:
-                print("⚠️ Error message topildi, sahifa yopilyapti...")
-                await page.close()
-            else:
-                await page.evaluate('document.querySelector(".form__input").value = ""')
-
-                await page_pool.put(page)
+            # error_message = await page.query_selector('.error-message')
+            #
+            # if error_message:
+            #     print("⚠️ Error message topildi, sahifa yopilyapti...")
+            #     await page.close()
+            # else:
+            #     await page.evaluate('document.querySelector(".    form__input").value = ""')
+            #
+            await page.evaluate('document.querySelector(".    form__input").value = ""')
+            await page_pool.put(page)
 
 
 
