@@ -6,7 +6,7 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError, async_p
 from fastapi import FastAPI, Depends, Request
 from .proxy_route import get_db
 from .model import BrowserManager
-from .proxy_route import get_proxy_config
+from .proxy_route import get_proxy_config, proxy_off
 import re
 from playwright.async_api import async_playwright
 from .cashe import generate_unique_id
@@ -469,57 +469,131 @@ async def get_video_album(info, url):
     return data
 
 
-
-
 async def download_instagram_media(url, proxy_config, db, request):
     loop = asyncio.get_running_loop()
-    try:
-        # Async wrapper for yt-dlp extraction
-        async def extract_info():
-            def sync_extract():
-                proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-                options = {
-                    'quiet': True,
-                    'proxy': proxy_url,
-                    'extract_flat': False,
-                }
-                with yt_dlp.YoutubeDL(options) as ydl:
-                    return ydl.extract_info(url, download=False)
+    retry_count = 0
+    max_retries = 3
+    last_exception = None
 
-            return await loop.run_in_executor(None, sync_extract)
+    while retry_count <= max_retries:
+        try:
+            async def extract_info():
+                def sync_extract():
+                    proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+                    options = {
+                        'quiet': True,
+                        'proxy': proxy_url,
+                        'extract_flat': False,
+                    }
+                    with yt_dlp.YoutubeDL(options) as ydl:
+                        return ydl.extract_info(url, download=False)
+                return await loop.run_in_executor(None, sync_extract)
 
-        info = await extract_info()
-        if "entries" in info and len(info["entries"]) > 1:
-            data = await get_video_album(info, url)
-        elif "formats" in info:
-            print("Get a video")
-            data = await get_video(info, url)
-        else:
-            print("Get media1")
-            data =  await get_instagram_direct_links(
-                post_url=url,
-                db=db,
-                request=request
-            )
-        return data
+            info = await extract_info()
 
-    except yt_dlp.utils.DownloadError as e:
-        error_message = str(e)
+            if "entries" in info and len(info["entries"]) > 1:
+                data = await get_video_album(info, url)
+            elif "formats" in info:
+                print("Get a video")
+                data = await get_video(info, url)
+            else:
+                print("Get media1")
+                data = await get_instagram_direct_links(
+                    post_url=url,
+                    db=db,
+                    request=request
+                )
+            return data
 
-        if "There is no video in this post" in error_message:
-            print("Get media2")
-            return await get_instagram_direct_links(
-                post_url=url,
-                db=db,
-                request=request
-            )
-        print("Error", error_message)
-        return {"error": True, "message": "Invalid response from the server"}
+        except yt_dlp.utils.ExtractorError as e:
+            last_exception = e
+            error_msg = str(e) or "No error details provided"
+            logging.error(f"Extractor Error [{retry_count}]: {error_msg}")
 
-    except Exception as e:
-        print(f"Error downloading Instagram media: {str(e)}")
-        print(traceback.format_exc())
-        return {"error": True, "message": "Invalid response from the server"}
+            if any(msg in error_msg for msg in [
+                "Sign in to confirm you're not a bot",
+                "blocked it in your country",
+                "This video is unavailable"
+            ]):
+                if proxy_config:
+                    logging.info("Rotating proxy due to restriction...")
+                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                retry_count += 1
+                continue
+            else:
+                break  # Agar boshqa xatolik bo'lsa, retry qilmaymiz
+
+        except yt_dlp.utils.DownloadError as e:
+            error_message = str(e)
+
+            if "There is no video in this post" in error_message:
+                print("Get media2")
+                return await get_instagram_direct_links(
+                    post_url=url,
+                    db=db,
+                    request=request
+                )
+            print("DownloadError", error_message)
+            return {"error": True, "message": "Invalid response from the server"}
+
+        except Exception as e:
+            print(f"Error downloading Instagram media: {str(e)}")
+            print(traceback.format_exc())
+            return {"error": True, "message": "Invalid response from the server"}
+
+    # Agar 3 martadan keyin ham muvaffaqiyatsiz bo'lsa
+    return {"error": True, "message": "Failed to download media after retries", "details": str(last_exception)}
+
+# //##############################3333
+# async def download_instagram_media(url, proxy_config, db, request):
+#     loop = asyncio.get_running_loop()
+#     try:
+#         # Async wrapper for yt-dlp extraction
+#         async def extract_info():
+#             def sync_extract():
+#                 proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+#                 options = {
+#                     'quiet': True,
+#                     'proxy': proxy_url,
+#                     'extract_flat': False,
+#                 }
+#                 with yt_dlp.YoutubeDL(options) as ydl:
+#                     return ydl.extract_info(url, download=False)
+
+#             return await loop.run_in_executor(None, sync_extract)
+
+#         info = await extract_info()
+#         if "entries" in info and len(info["entries"]) > 1:
+#             data = await get_video_album(info, url)
+#         elif "formats" in info:
+#             print("Get a video")
+#             data = await get_video(info, url)
+#         else:
+#             print("Get media1")
+#             data =  await get_instagram_direct_links(
+#                 post_url=url,
+#                 db=db,
+#                 request=request
+#             )
+#         return data
+
+#     except yt_dlp.utils.DownloadError as e:
+#         error_message = str(e)
+
+#         if "There is no video in this post" in error_message:
+#             print("Get media2")
+#             return await get_instagram_direct_links(
+#                 post_url=url,
+#                 db=db,
+#                 request=request
+#             )
+#         print("Error", error_message)
+#         return {"error": True, "message": "Invalid response from the server"}
+
+#     except Exception as e:
+#         print(f"Error downloading Instagram media: {str(e)}")
+#         print(traceback.format_exc())
+#         return {"error": True, "message": "Invalid response from the server"}
 
 
 
