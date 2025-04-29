@@ -160,7 +160,6 @@ async def get_instagram_direct_links_route(post_url: str, request: Request):
 
         # Yuklab olish tugmasi chiqquncha kutish
         await page.wait_for_selector(".button__download", state="attached", timeout=10000)
-
         # Storylar uchun yuklab olish linklari
         story_elements = await page.locator(".button__download").all()
         story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
@@ -168,6 +167,7 @@ async def get_instagram_direct_links_route(post_url: str, request: Request):
         # Har bir media uchun thumbnail (prevyu rasm)
         thumbnail_elements = await page.locator(".media-content__image").all()
         thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
+        
 
         # Sarlavha olish
         title_elements = await page.locator(".output-list__caption p").all()

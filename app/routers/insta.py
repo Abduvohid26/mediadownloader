@@ -312,7 +312,6 @@ async def get_instagram_direct_links(post_url: str, db, request):
 
         # Yuklab olish tugmasi chiqquncha kutish
         await page.wait_for_selector(".button__download", state="attached", timeout=10000)
-
         # Storylar uchun yuklab olish linklari
         story_elements = await page.locator(".button__download").all()
         story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
@@ -320,6 +319,8 @@ async def get_instagram_direct_links(post_url: str, db, request):
         # Thumbnaillar
         thumbnail_elements = await page.locator(".media-content__image").all()
         thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
+        print(thumbnails, "THUMBNAILS")
+
 
         # Sarlavha
         title_elements = await page.locator(".output-list__caption p").all()
@@ -364,36 +365,6 @@ async def get_instagram_direct_links(post_url: str, db, request):
                 "download_url": media_download_url,
                 "thumb": thumb_download_url
             })
-
-
-
-        # medias = []
-        # for idx, media_url in enumerate(story_links):
-        #     # 1. Media URL uchun
-        #     media_id = await generate_unique_id()
-        #     media_download = Download(id=media_id, original_url=media_url)
-        #     db.add(media_download)
-
-        #     media_download_url = f"https://videoyukla.uz/download?id={media_id}"
-        #     # media_download_url = f"http:localhost:8000/download?id={media_id}"
-
-        #     # 2. Thumbnail bo‘lsa, alohida saqlaymiz
-        #     thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
-        #     thumb_download_url = None
-        #     print(thumb_url, "THUMB")
-        #     if thumb_url:
-        #         thumb_id = await generate_unique_id()
-        #         thumb_download = Download(id=thumb_id, original_url=thumb_url)
-        #         db.add(thumb_download)
-        #         # thumb_download_url = f"http:localhost:8000/download?id={thumb_id}"
-        #         thumb_download_url = f"https://videoyukla.uz/download?id={thumb_id}"
-
-        #     medias.append({
-        #         "type": detect_type(media_url),
-        #         "download_url": media_download_url,
-        #         "thumb": thumb_download_url
-        #     })
-
         await db.commit()
 
         return {
