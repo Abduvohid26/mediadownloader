@@ -349,12 +349,14 @@ async def get_instagram_direct_links(post_url: str, db, request):
             # 2. Thumbnail bo‘lsa, alohida saqlaymiz
             thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
             thumb_download_url = None
-            print(thumb_url, "THUMB")
             if thumb_url:
-                thumb_id = await generate_unique_id()
-                thumb_download = Download(id=thumb_id, original_url=thumb_url)
-                db.add(thumb_download)
-                thumb_download_url = f"https://fast.videoyukla.uz/download?id={thumb_id}"
+                if not thumb_url.startswith('data:image'):
+                    thumb_id = await generate_unique_id()
+                    thumb_download = Download(id=thumb_id, original_url=thumb_url)
+                    db.add(thumb_download)
+                    thumb_download_url = f"https://fast.videoyukla.uz/download?id={thumb_id}"
+                else:
+                    thumb_download_url = media_download_url
 
             # Agar type "image" bo'lsa, thumb_url bilan download_url ni bir xil qilib qo'yamiz
             if detect_type(media_url) == "image" and thumb_download_url:
