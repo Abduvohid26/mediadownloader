@@ -315,7 +315,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
         # Storylar uchun yuklab olish linklari
         story_elements = await page.locator(".button__download").all()
         story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
-        asyncio.sleep(5)
+        await asyncio.sleep(5)
         # Thumbnaillar
         thumbnail_elements = await page.locator(".media-content__image").all()
         thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
