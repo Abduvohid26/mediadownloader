@@ -350,7 +350,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
             thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
             thumb_download_url = None
             if thumb_url:
-                if not thumb_url.startswith('http'):
+                if thumb_url.startswith('http'):
                     thumb_id = await generate_unique_id()
                     thumb_download = Download(id=thumb_id, original_url=thumb_url)
                     db.add(thumb_download)
