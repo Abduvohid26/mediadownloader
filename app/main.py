@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 5
+MAX_PAGES = 20
 
 
 # DB sessiyasini olish
@@ -269,7 +269,7 @@ async def startup():
     print("✅ Proxysiz:", browser_noproxy, context_noproxy)
 
 
-    for _ in range(1):
+    for _ in range(5):
         page = await context_proxy.new_page()
         await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
         await PAGE_POOL.put(page)
