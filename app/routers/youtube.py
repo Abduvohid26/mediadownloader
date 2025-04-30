@@ -250,25 +250,25 @@ async def get_yt_data(url: str) -> Dict:
             last_exception = e
             error_msg = str(e) or "No error details provided"
             logging.error(f"Download Error [{retry_count}]: {error_msg}")
+            
             if "Too Many Requests" in error_msg:
                 logging.info("Rotating proxy due to rate limiting...")
                 await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
-                retry_count += 1
-                continue
+            else:
+                logging.info("General download error, retrying...")
+            logging.info("Rotating proxy due to rate limiting...")
+            await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
 
-            return {
-                "error": True,
-                "message": "Download failed",
-                "type": "DownloadError",
-                "details": error_msg,
-                "traceback": traceback.format_exc() or "No traceback available"
-            }
+            retry_count += 1
+            continue  # ✅ retry qilishga ruxsat beramiz
 
         except Exception as e:
             last_exception = e
             error_msg = str(e) or "No error details provided"
             logging.error(f"Unexpected Error [{retry_count}]: {error_msg}")
             logging.exception("Stack trace:")
+            logging.info("Rotating proxy due to rate limiting...")
+            await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
             retry_count += 1
             continue
 
@@ -276,9 +276,9 @@ async def get_yt_data(url: str) -> Dict:
     final_error = str(last_exception) or "No error details provided"
     return {
         "error": True,
-        "message": "Max retries exceeded",
-        "last_exception": final_error,
-        "traceback": traceback.format_exc() or "No traceback available",
+        "message": "Error response from the server",
+        # "last_exception": final_error,
+        # "traceback": traceback.format_exc() or "No traceback available",
         "retries": retry_count
     }
 ##################################################################################
