@@ -187,7 +187,6 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
     """
     YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
     """
-    print(info, "Data")
     try:
         # Agar proxy mavjud bo'lsa token hosil qilamiz va redisga yozamiz
         token = os.urandom(16).hex() if proxy_url else None
@@ -196,6 +195,7 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
 
         # Asosiy video URL-ni olish
         main_url = info.get("url")
+        print(main_url, "url")
         if not main_url:
             raise ValueError("No URL found in video info")
 
