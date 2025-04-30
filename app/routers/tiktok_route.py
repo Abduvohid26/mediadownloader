@@ -20,8 +20,7 @@ async def tk_media(tk_url: str, request: Request):
 @tk_router.post("/tiktok/media/service/", include_in_schema=False)
 async def tk_media_service(request: Request, url: TkSchema = Form(...)):
     try:
-        context = request.app.state.context_noproxy
-        data = await download_from_snaptik(url.url.strip(), context)
+        data = await download_from_snaptik(url.url.strip(), request)
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
         return data
