@@ -456,7 +456,7 @@ async def restart_browser_loop():
 
 async def restart_browser_loop_snaptik():
     while True:
-        await asyncio.sleep(15 * 60)  # 10 daqiqada yangilash
+        await asyncio.sleep(35 * 60)  # 10 daqiqada yangilash
 
         print("♻️ Browser va context restart qilinmoqda... snaptikk")
 
