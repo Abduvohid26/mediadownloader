@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 10
+MAX_PAGES = 2
 
 
 # DB sessiyasini olish
@@ -246,12 +246,12 @@ async def startup():
         'headless': True,
         'args': ['--no-sandbox', '--disable-setuid-sandbox']
     }
-    if proxy_config:
-        proxy_options['proxy'] = {
-            'server': f"http://{proxy_config['server'].replace('http://', '')}",
-            'username': proxy_config['username'],
-            'password': proxy_config['password']
-        }
+    # if proxy_config:
+    #     proxy_options['proxy'] = {
+    #         'server': f"http://{proxy_config['server'].replace('http://', '')}",
+    #         'username': proxy_config['username'],
+    #         'password': proxy_config['password']
+    #     }
 
     browser_proxy = await playwright.chromium.launch(**proxy_options)
     context_proxy = await browser_proxy.new_context()
@@ -266,7 +266,9 @@ async def startup():
 
     # Page Pool
     PAGE_POOL = asyncio.Queue()
+    PAGE_POOL2 = asyncio.Queue()
     app.state.page_pool = PAGE_POOL
+    app.state.page_pool2 = PAGE_POOL2
 
     # Dastlabki sahifalar
     try:
@@ -276,9 +278,19 @@ async def startup():
         print("✅ sssinstagram sahifa qo‘shildi")
     except Exception as e:
         await page.close()
-        print(f"⚠️ Dastlab sahifa ochishda xato: {e}")
+        print(f"⚠️ Dastlab sssinstagram sahifa ochishda xato: {e}")
+
+    try:
+        page = await context_proxy.new_page()
+        await page.goto("https://snaptik.app", wait_until="load")
+        await PAGE_POOL.put(page)
+        print("✅ Snaptik sahifa qo‘shildi")
+    except Exception as e:
+        await page.close()
+        print(f"⚠️ Dastlab Snaptik sahifa ochishda xato: {e}")
 
     app.state.add_page_task = asyncio.create_task(add_page_loop(context_proxy, PAGE_POOL))
+    app.state.add_page_task_snaptik = asyncio.create_task(add_page_loop_snaptik(context_proxy, PAGE_POOL2))
 
     asyncio.create_task(restart_browser_loop())
 # ####################################3 \\\\
@@ -356,7 +368,8 @@ async def shutdown():
 @app.get('/status')
 async def get_data(request: Request):
     PAGE_POOL = request.app.state.page_pool
-    return {"status": "ok", "page_count": PAGE_POOL.qsize()}
+    PAGE_POOL2 = request.app.state.page_pool2
+    return {"status": "ok", "page_count": PAGE_POOL.qsize(), "page_count2": PAGE_POOL2.qsize()}
 
 
 
@@ -373,7 +386,24 @@ async def add_page_loop(context, page_pool):
                 await page_pool.put(page)
                 print("✅ sssinstagram sahifa qo'shildi")
             except Exception as e:
-                print(f"⚠️ Page yaratishda xato !: {e}")
+                print(f"⚠️ sssinstagram Page yaratishda xato !: {e}")
+                try:
+                    await page.close()
+                except:
+                    pass
+
+
+async def add_page_loop_snaptik(context, page_pool):
+    while True:
+        await asyncio.sleep(0.5)
+        if page_pool.qsize() < MAX_PAGES:
+            try:
+                page = await context.new_page()
+                await page.goto("https://snaptik.app", wait_until="load", timeout=10000)
+                await page_pool.put(page)
+                print("✅ snaptik sahifa qo'shildi")
+            except Exception as e:
+                print(f"⚠️ snaptik Page yaratishda xato !: {e}")
                 try:
                     await page.close()
                 except:
@@ -418,6 +448,49 @@ async def restart_browser_loop():
 
             # Yangi sahifa yaratish loopni yangidan ishga tushuramiz
             app.state.add_page_task = asyncio.create_task(add_page_loop(context_noproxy, PAGE_POOL))
+            print("♻️ Browser va sahifalar yangilandi!")
+
+        except Exception as e:
+            print(f"♻️ Browserni yangilashda xatolik: {e}")
+
+
+async def restart_browser_loop_snaptik():
+    while True:
+        await asyncio.sleep(15 * 60)  # 10 daqiqada yangilash
+
+        print("♻️ Browser va context restart qilinmoqda... snaptikk")
+
+        try:
+            # Eski context/browser yopamiz
+            await app.state.context_proxy.close()
+            await app.state.browser_proxy.close()
+
+            playwright = await async_playwright().start()
+            browser_proxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            context_proxy = await browser_proxy.new_context()
+
+            app.state.browser_proxy = browser_proxy
+            app.state.context_proxy = context_proxy
+
+            # Eski page_pool ni yangilaymiz
+            PAGE_POOL2 = asyncio.Queue()
+            app.state.page_pool2 = PAGE_POOL2
+
+            # Eski sahifa yaratish task to‘xtatiladi
+            app.state.add_page_task_snaptik.cancel()
+
+            # Yangi sahifalar qo‘shamiz
+            try:
+                page = await context_proxy.new_page()
+                await page.goto("https://snaptik.app", wait_until="load")
+                await PAGE_POOL2.put(page)
+                print("✅ snaptikk sahifa qo‘shildi")
+            except Exception as e:
+                await page.close()
+                print(f"⚠️ Sahifa ochishda xato: {e}")
+
+            # Yangi sahifa yaratish loopni yangidan ishga tushuramiz
+            app.state.add_page_task = asyncio.create_task(add_page_loop_snaptik(context_proxy, PAGE_POOL2))
             print("♻️ Browser va sahifalar yangilandi!")
 
         except Exception as e:

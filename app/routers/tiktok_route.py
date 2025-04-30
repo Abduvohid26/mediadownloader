@@ -7,8 +7,7 @@ tk_router = APIRouter()
 @tk_router.get("/tiktok/media/")
 async def tk_media(tk_url: str, request: Request):
     try:
-        context = request.app.state.context_noproxy
-        data = await download_from_snaptik(tk_url.strip(), context)
+        data = await download_from_snaptik(tk_url.strip(), request)
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
         return data
