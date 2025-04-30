@@ -393,7 +393,7 @@ async def restart_browser_loop():
             await app.state.browser_noproxy.close()
 
             playwright = await async_playwright().start()
-            browser_noproxy = await playwright.chromium.launch(headless=False, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
             context_noproxy = await browser_noproxy.new_context()
 
             app.state.browser_noproxy = browser_noproxy
