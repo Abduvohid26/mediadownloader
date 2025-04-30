@@ -99,12 +99,95 @@ import redis
 
 ##################################################################################
 # Video ma'lumotlarini olish
+# from typing import Dict, Optional, List, Any
+# import traceback
+# async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Dict:
+#     """
+#     YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
+#     """
+#     try:
+#         # Agar proxy mavjud bo'lsa token hosil qilamiz va redisga yozamiz
+#         token = os.urandom(16).hex() if proxy_url else None
+#         if token and proxy_url:
+#             redis_client.set(token, proxy_url, ex=300)
+
+#         # Asosiy video URL-ni olish
+#         main_url = info.get("url")
+#         if not main_url:
+#             raise ValueError("No URL found in video info")
+
+#         medias: List[Dict] = [{
+#             "quality": f"{info.get('format', 'unknown').split(' ')[-1]}",
+#             "type": "video",
+#             "ext": "mp4",
+#             "url": main_url
+#         }]
+
+#         # Qo'shimcha formatlarni qayta ishlash
+#         for data in info.get("formats", []):
+#             try:
+#                 if data.get("url") and data.get("ext") in ["mp4", "m4a", "webm"]:
+#                     type = None
+#                     ext = data.get("ext")
+#                     if ext in ["mp4", "m4a", "webm"]:
+#                         if ext == "mp4":
+#                             type = "video"
+#                         elif ext == "webm" and data["audio_ext"]:
+#                             type = "audio"
+#                         elif ext == "webm" and data["video_ext"]:
+#                             type = "video"
+#                         else:
+#                             type = "audio"
+
+#                     medias.append({
+#                         "quality": f"{data.get('format', 'unknown').split()[-1]}",
+#                         "type": type,
+#                         "ext": data.get("ext"),
+#                         "url": data.get("url")
+#                     })
+#             except Exception:
+#                 logging.exception(f"Error processing format {data.get('format_id')}")
+
+#         # Thumbnail tanlash: qoniqarli o'lchamga ega bo'lganini tanlaymiz
+#         thumbnail = None
+#         for thumb in reversed(info.get("thumbnails", [])):
+#             try:
+#                 if (thumb.get("url", "").endswith((".jpg")) and
+#                         (thumb.get("width", 0) >= 336 or thumb.get("height", 0) >= 188)):
+#                     thumbnail = thumb["url"]
+#                     break
+#             except Exception as e:
+#                 logging.exception("Error processing thumbnail:")
+#                 continue
+
+#         return {
+#             "error": False,
+#             "hosting": "youtube",
+#             "url": url,
+#             "title": info.get("title", "Unknown Title"),
+#             "thumbnail": thumbnail,
+#             "duration": info.get("duration", 0),
+#             "token": token,
+#             "medias": medias
+#         }
+
+#     except Exception as e:
+#         logging.exception("CRITICAL ERROR in get_video:")
+#         error_details = str(e) or "No error details provided"
+#         return {
+#             "error": True,
+#             "message": f"Video processing failed: {error_details}",
+#             "traceback": traceback.format_exc() or "No traceback available",
+#             "original_info": info
+#         }
+
 from typing import Dict, Optional, List, Any
 import traceback
 async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Dict:
     """
     YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
     """
+    print(info, "Data")
     try:
         # Agar proxy mavjud bo'lsa token hosil qilamiz va redisga yozamiz
         token = os.urandom(16).hex() if proxy_url else None
