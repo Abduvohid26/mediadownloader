@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 20
+MAX_PAGES = 5
 
 
 # DB sessiyasini olish
@@ -282,7 +282,7 @@ async def startup():
     # Avtomatik yangilanish uchun sahifalar qo'shish
     async def add_page_loop():
         while True:
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
             if PAGE_POOL.qsize() < MAX_PAGES:
                 try:
                     page = await context_proxy.new_page()
@@ -290,7 +290,7 @@ async def startup():
                     await PAGE_POOL.put(page)
                     print("✅ Page qo'shildi")
                 except Exception as e:
-                    print(f"⚠️ Page yaratishda xato: {e}")
+                    print(f"⚠️ Page yaratishda xato !: {e}")
                     await page.close()  # Err
     asyncio.create_task(add_page_loop())
 
@@ -367,6 +367,11 @@ async def shutdown():
     print("Browser closes")
 
 
+@app.get('/status')
+async def get_data(request: Request):
+    PAGE_POOL = request.app.state.page_pool
+    return {"status": "ok", "page_count": PAGE_POOL.qsize()}
+
 
 async def restart_browser_loop():
     while True:
@@ -380,7 +385,7 @@ async def restart_browser_loop():
             await app.state.browser_noproxy.close()
 
             playwright = await async_playwright().start()
-            browser_noproxy = await playwright.chromium.launch(headless=False, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
             context_noproxy = await browser_noproxy.new_context()
 
             app.state.browser_noproxy = browser_noproxy
@@ -412,7 +417,7 @@ async def restart_browser_loop():
                             await PAGE_POOL.put(page)
                             print("✅ Page qo'shildi")
                         except Exception as e:
-                            print(f"⚠️ Page yaratishda xato: {e}")
+                            print(f"⚠️ Page yaratishda xato !: {e}")
                             await page.close()
 
             # Re-start page addition loop after browser restart
