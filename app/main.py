@@ -270,10 +270,15 @@ async def startup():
 
 
     for _ in range(5):
-        page = await context_proxy.new_page()
-        await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
-        await PAGE_POOL.put(page)
+        try:
 
+            page = await context_proxy.new_page()
+            await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
+            await PAGE_POOL.put(page)
+            print("✅ Page qo'shildi")
+        except Exception as e:
+            print(f"⚠️ Page yaratishda xato: {e}")
+            await page.close()  # Err
     # Avtomatik yangilanish uchun sahifalar qo'shish
     async def add_page_loop():
         while True:
@@ -365,7 +370,7 @@ async def shutdown():
 
 async def restart_browser_loop():
     while True:
-        await asyncio.sleep(20 * 60)  # Har 3 soatda browserni yangilaymiz
+        await asyncio.sleep(10 * 60)  # Har 3 soatda browserni yangilaymiz
 
         print("♻️ Browser va context restart qilinmoqda...")
 
@@ -375,7 +380,7 @@ async def restart_browser_loop():
             await app.state.browser_noproxy.close()
 
             playwright = await async_playwright().start()
-            browser_noproxy = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            browser_noproxy = await playwright.chromium.launch(headless=False, args=['--no-sandbox', '--disable-setuid-sandbox'])
             context_noproxy = await browser_noproxy.new_context()
 
             app.state.browser_noproxy = browser_noproxy
@@ -392,12 +397,30 @@ async def restart_browser_loop():
                 await PAGE_POOL.put(page)
                 print("✅ Page qo'shildi")
             except Exception as e:
-                print(f"⚠️ Page yaratishda xato11111111111111111: {e}")
+                print(f"⚠️ Page yaratishda xato: {e}")
                 await page.close()  # Err
             print("♻️ Browser va context yangilandi!")
 
+            # Add new pages after browser restart
+            async def add_page_loop():
+                while True:
+                    await asyncio.sleep(1)
+                    if PAGE_POOL.qsize() < MAX_PAGES:
+                        try:
+                            page = await context_noproxy.new_page()
+                            await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load")
+                            await PAGE_POOL.put(page)
+                            print("✅ Page qo'shildi")
+                        except Exception as e:
+                            print(f"⚠️ Page yaratishda xato: {e}")
+                            await page.close()
+
+            # Re-start page addition loop after browser restart
+            asyncio.create_task(add_page_loop())
+
         except Exception as e:
             print(f"♻️ Browserni yangilashda xatolik: {e}")
+
 ###############################################33\\\\
 
 
