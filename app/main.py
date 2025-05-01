@@ -364,7 +364,7 @@ async def startup():
     add_task_key="add_page_task",
     add_page_func=add_page_loop,
     urls=["https://sssinstagram.com/ru/story-saver"],
-    interval=10 * 60
+    interval=2 * 60
     ))
 
     asyncio.create_task(restart_browser_loop_generic(
@@ -533,9 +533,17 @@ async def restart_browser_loop_generic(
             if browser:
                 await browser.close()
 
+            playwright = getattr(app.state, f"{browser_key}_playwright", None)
+            if playwright:
+                await playwright.stop()
+
+            # Yangi playwright start qilamiz
+            playwright_new = await async_playwright().start()
+            setattr(app.state, f"{browser_key}_playwright", playwright_new)
+
             # Yangi browser/context yaratamiz
-            playwright = await async_playwright().start()
-            browser_new = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+
+            browser_new = await playwright_new.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
             context_new = await browser_new.new_context()
 
             setattr(app.state, browser_key, browser_new)
