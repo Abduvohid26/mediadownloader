@@ -78,26 +78,30 @@ async def get_proxy_config():
 async def proxy_off(proxy_ip: str, action: str):
     async with SessionLocal() as db:
         try:
+            proxy_ip = proxy_ip.strip().split("/")[-1]
             result = await db.execute(
                 select(ProxyServers).filter(ProxyServers.proxy == proxy_ip)
             )
             proxy = result.scalars().first()
+            print(proxy, "db", "procy_ip", proxy_ip)
+            
 
             if not proxy:
                 print(f"Proxy {proxy_ip} topilmadi.")
-                return
+                return {"proxt toptilmadi ?"}
 
-            # Berilgan action-ni False qilish
             if action in ["instagram", "youtube", "tiktok"]:
                 setattr(proxy, action, False)
+                db.add(proxy)  # sessionga qaytadan qo‘shamiz
                 await db.commit()
-
-            # Agar barcha maydonlar False bo‘lsa, proxy-ni o‘chirish
+                return  {"message": f"Proxy {proxy_ip} bazadan o‘chirildi."}
+            # Agar barcha flaglar False bo‘lsa – delete
             if not proxy.instagram and not proxy.youtube and not proxy.tiktok:
                 await db.execute(delete(ProxyServers).where(ProxyServers.proxy == proxy_ip))
                 await db.commit()
-                print(f"Proxy {proxy_ip} bazadan o‘chirildi.")
+                return {"message": f"Proxy {proxy_ip} bazadan o‘chirildi. all"}
 
         except SQLAlchemyError as e:
             print(f"Bazada xatolik yuz berdi: {e}")
             await db.rollback()
+            return {"message": "Bazada xatolik yuz berdi: {e}"}

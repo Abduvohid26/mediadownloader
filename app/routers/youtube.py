@@ -316,7 +316,9 @@ async def get_yt_data(url: str) -> Dict:
             ]):
                 if proxy_config:
                     logging.info("Rotating proxy due to restriction...")
-                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                    proxy_data = await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                    print(proxy_data, "PROXY DATA1")
+
                 retry_count += 1
                 continue
 
@@ -335,11 +337,15 @@ async def get_yt_data(url: str) -> Dict:
             
             if "Too Many Requests" in error_msg:
                 logging.info("Rotating proxy due to rate limiting...")
-                await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                proxy_data = await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                print(proxy_data, "PROXY DATA2")
+
             else:
                 logging.info("General download error, retrying...")
             logging.info("Rotating proxy due to rate limiting...")
-            await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+            proxy_data = await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+            print(proxy_data, "PROXY DATA3")
+
 
             retry_count += 1
             continue  # ✅ retry qilishga ruxsat beramiz
@@ -350,7 +356,9 @@ async def get_yt_data(url: str) -> Dict:
             logging.error(f"Unexpected Error [{retry_count}]: {error_msg}")
             logging.exception("Stack trace:")
             logging.info("Rotating proxy due to rate limiting...")
-            await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+            proxy_data = await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+            print(proxy_data, "PROXY DATA4")
+
             retry_count += 1
             continue
 
