@@ -379,7 +379,8 @@ async def get_instagram_direct_links(post_url: str, db, request):
         }
 
     except Exception as e:
-        print(f"Xatolik yuz berdi: {e}")        
+        print(f"Xatolik yuz berdi: {e} Page yopilmoqda")
+        await page.close()
         return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
     
 
