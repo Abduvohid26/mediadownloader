@@ -38,7 +38,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 
 
-MAX_PAGES = 5
+MAX_PAGES = 4
 
 
 # DB sessiyasini olish
