@@ -391,9 +391,12 @@ async def get_instagram_direct_links(post_url: str, db, request):
                 print("⚠️ Error message topildi, sahifa yopilyapti...")
                 await page.close()
             else:
-                await page.evaluate('document.querySelector(".form__input").value = ""')
-
+                try:
+                    await page.evaluate('document.querySelector(".form__input").value = ""')
+                except Exception as e:
+                    print(f"⚠️ Input tozalashda xatolik: {e}")
                 await page_pool.put(page)
+
 
 
 

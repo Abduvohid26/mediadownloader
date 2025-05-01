@@ -79,12 +79,9 @@ async def download_from_snaptik(url, request):
 
     finally:
         if not page.is_closed():
-            # error_message = await page.query_selector('.error-message')
-
-            # if error_message:
-            #     print("⚠️ Error message topildi, sahifa yopilyapti...")
-            #     await page.close()
-            # else:
-            # await page.evaluate('document.querySelector(".form__input").value = ""')
-            await page.reload()
-            await page_pool.put(page)
+            try:
+                await page.reload()
+                await page_pool.put(page)
+            except Exception as e:
+                print(f"⚠️ Reload qilishda xatolik: {e}")
+                await page.close()
