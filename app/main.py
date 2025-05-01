@@ -508,6 +508,8 @@ async def add_page_loop_snaptik(context, page_pool):
                 except:
                     pass
 
+from playwright.async_api import async_playwright
+import asyncio
 
 async def restart_browser_loop_generic(
     context_key: str,
@@ -520,73 +522,160 @@ async def restart_browser_loop_generic(
 ):
     while True:
         await asyncio.sleep(interval)
-
         print(f"♻️ {context_key} uchun browser va context restart qilinmoqda...")
 
         try:
-            # Eski context/browser yopamiz
-            context = getattr(app.state, context_key, None)
-            browser = getattr(app.state, browser_key, None)
+            # 1. Eski sahifa task to'xtatiladi
+            old_task = getattr(app.state, add_task_key, None)
+            if old_task:
+                old_task.cancel()
+                try:
+                    await old_task
+                except asyncio.CancelledError:
+                    pass
 
+            # 2. Eski sahifalarni yopamiz
+            old_page_pool = getattr(app.state, page_pool_key, None)
+            if old_page_pool:
+                while not old_page_pool.empty():
+                    try:
+                        page = await old_page_pool.get()
+                        if not page.is_closed():
+                            await page.close()
+                    except Exception as e:
+                        print(f"⚠️ Sahifa yopishda xato: {e}")
+
+            # 3. Eski context/browser ni yopamiz
+            context = getattr(app.state, context_key, None)
             if context:
                 await context.close()
+            browser = getattr(app.state, browser_key, None)
             if browser:
                 await browser.close()
 
-            playwright = getattr(app.state, f"{browser_key}_playwright", None)
+            # 4. Eski playwrightni to‘xtatamiz
+            playwright = getattr(app.state, "playwright", None)
             if playwright:
                 await playwright.stop()
-                # Yangi playwright start qilamiz
-            playwright_new = await async_playwright().start()
-            setattr(app.state, f"{browser_key}_playwright", playwright_new)
-            # Yangi browser/context yaratamiz
 
-            browser_new = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            # 5. Yangi playwrightni ishga tushuramiz
+            playwright_new = await async_playwright().start()
+            setattr(app.state, "playwright", playwright_new)
+
+            # 6. Yangi browser va context yaratamiz
+            browser_new = await playwright_new.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
             context_new = await browser_new.new_context()
 
             setattr(app.state, browser_key, browser_new)
             setattr(app.state, context_key, context_new)
 
-            # Eski sahifalarni tozalaymiz va yangi Queue yaratamiz
-            old_page_pool = getattr(app.state, page_pool_key, None)
-            if old_page_pool:
-                while not old_page_pool.empty():
-                    try:
-                        old_page = await old_page_pool.get()
-                        if not old_page.is_closed():
-                            await old_page.close()
-                    except Exception as e:
-                        print(f"⚠️ Eski sahifani yopishda xato: {e}")
-
-            # Eski sahifalarni tozalaymiz va yangi Queue yaratamiz
+            # 7. Yangi sahifa queue yaratamiz
             page_pool = asyncio.Queue()
             setattr(app.state, page_pool_key, page_pool)
 
-            # Eski sahifa taskni to‘xtatamiz
-            old_task = getattr(app.state, add_task_key, None)
-            if old_task:
-                old_task.cancel()
-
-            # Har bir URL uchun yangi sahifa ochamiz
+            # 8. Har bir URL uchun yangi sahifa ochamiz
             for url in urls:
                 try:
                     page = await context_new.new_page()
                     await page.goto(url, wait_until="load")
                     await page_pool.put(page)
-                    print(f"✅ {url} sahifasi qo‘shildi")
+                    print(f"✅ {url} sahifasi yaratildi va qo‘shildi")
                 except Exception as e:
                     print(f"⚠️ {url} sahifasini ochishda xato: {e}")
-                    if not page.is_closed():
-                        await page.close()
+                    try:
+                        if not page.is_closed():
+                            await page.close()
+                    except:
+                        pass
 
-            # Yangi sahifa taskni ishga tushuramiz
+            # 9. Yangi sahifa task ishga tushuramiz
             new_task = asyncio.create_task(add_page_func(context_new, page_pool))
             setattr(app.state, add_task_key, new_task)
 
-            print(f"♻️ {context_key} uchun browser va sahifalar yangilandi!")
+            print(f"✅ {context_key} uchun to‘liq restart bajarildi!")
 
         except Exception as e:
-            print(f"♻️ {context_key} browserni yangilashda xatolik: {e}")
+            print(f"❌ {context_key} restartda xatolik: {e}")
+
+
+# async def restart_browser_loop_generic(
+#     context_key: str,
+#     browser_key: str,
+#     page_pool_key: str,
+#     add_task_key: str,
+#     add_page_func: callable,
+#     urls: list[str],
+#     interval: int
+# ):
+#     while True:
+#         await asyncio.sleep(interval)
+#
+#         print(f"♻️ {context_key} uchun browser va context restart qilinmoqda...")
+#
+#         try:
+#             # Eski context/browser yopamiz
+#             context = getattr(app.state, context_key, None)
+#             browser = getattr(app.state, browser_key, None)
+#
+#             if context:
+#                 await context.close()
+#             if browser:
+#                 await browser.close()
+#
+#             playwright = getattr(app.state, f"{browser_key}_playwright", None)
+#             if playwright:
+#                 await playwright.stop()
+#                 # Yangi playwright start qilamiz
+#             playwright_new = await async_playwright().start()
+#             setattr(app.state, f"{browser_key}_playwright", playwright_new)
+#             # Yangi browser/context yaratamiz
+#
+#             browser_new = await playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+#             context_new = await browser_new.new_context()
+#
+#             setattr(app.state, browser_key, browser_new)
+#             setattr(app.state, context_key, context_new)
+#
+#             # Eski sahifalarni tozalaymiz va yangi Queue yaratamiz
+#             old_page_pool = getattr(app.state, page_pool_key, None)
+#             if old_page_pool:
+#                 while not old_page_pool.empty():
+#                     try:
+#                         old_page = await old_page_pool.get()
+#                         if not old_page.is_closed():
+#                             await old_page.close()
+#                     except Exception as e:
+#                         print(f"⚠️ Eski sahifani yopishda xato: {e}")
+#
+#             # Eski sahifalarni tozalaymiz va yangi Queue yaratamiz
+#             page_pool = asyncio.Queue()
+#             setattr(app.state, page_pool_key, page_pool)
+#
+#             # Eski sahifa taskni to‘xtatamiz
+#             old_task = getattr(app.state, add_task_key, None)
+#             if old_task:
+#                 old_task.cancel()
+#
+#             # Har bir URL uchun yangi sahifa ochamiz
+#             for url in urls:
+#                 try:
+#                     page = await context_new.new_page()
+#                     await page.goto(url, wait_until="load")
+#                     await page_pool.put(page)
+#                     print(f"✅ {url} sahifasi qo‘shildi")
+#                 except Exception as e:
+#                     print(f"⚠️ {url} sahifasini ochishda xato: {e}")
+#                     if not page.is_closed():
+#                         await page.close()
+#
+#             # Yangi sahifa taskni ishga tushuramiz
+#             new_task = asyncio.create_task(add_page_func(context_new, page_pool))
+#             setattr(app.state, add_task_key, new_task)
+#
+#             print(f"♻️ {context_key} uchun browser va sahifalar yangilandi!")
+#
+#         except Exception as e:
+#             print(f"♻️ {context_key} browserni yangilashda xatolik: {e}")
 
 
 # async def restart_browser_loop():
