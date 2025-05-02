@@ -1,8 +1,12 @@
 import asyncio
 from playwright.async_api import async_playwright
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def download_from_snaptik(url, request):
     """Snaptik orqali TikTok videolarini yuklab olish funksiyasi."""
+    page = None
 
     try:
         page = await asyncio.wait_for(request.app.state.page_pool2.get(), timeout=10)
@@ -93,8 +97,8 @@ async def download_from_snaptik(url, request):
         # Sahifani tozalab, navbatga qaytarish yoki yopish
         if not page.is_closed():
             try:
-                await page.evaluate('document.querySelector("input[name=\'url\']").value = ""')
-                await page_pool.put(page)
+                await page.reload()
+                await request.app.state.page_pool2.put(page)
             except Exception as e:
                 logger.warning(f"⚠️ Sahifani qayta navbatga qo‘yishda xatolik: {e}")
                 await page.close()

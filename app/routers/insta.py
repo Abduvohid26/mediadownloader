@@ -299,6 +299,7 @@ import base64
 
 async def get_instagram_direct_links(post_url: str, db, request):
     """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
+    page = None
     try:
         # Sahifani navbatdan olish
         try:
@@ -388,7 +389,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
 
     finally:
         try:
-            if not page.is_closed():
+            if not page.is_closed() and page:
                 error_message = await page.query_selector(".error-message")
                 if error_message:
                     logger.warning("⚠️ Error message topildi, sahifa yopilyapti...")
@@ -398,7 +399,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
                     await request.app.state.page_pool.put(page)
         except Exception as e:
             logger.warning(f"⚠️ Sahifani yopishda xatolik: {e}")
-            if not page.is_closed():
+            if page and not page.is_closed():
                 await page.close()
 
 
