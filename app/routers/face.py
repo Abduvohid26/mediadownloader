@@ -24,6 +24,23 @@
 import asyncio
 import yt_dlp
 
+async def get_video(query, post_url):
+    return {
+        "error": False,
+        "shortcode": None,
+        "hosting": "facebook",
+        "type": "video",
+        "url": post_url,
+        "title": query.get("title"),
+        "medias": [
+            {
+                "type": "video",
+                "download_url": query.get("url"),
+                "thumb": query.get("thumbnails")[0].get("url", None)
+            }
+        ]
+    }
+
 async def get_facebook_video(post_url, proxy):
     ydl_opts = {
         "quiet": True,
@@ -39,7 +56,7 @@ async def get_facebook_video(post_url, proxy):
         loop = asyncio.get_running_loop()
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = await loop.run_in_executor(None, lambda: ydl.extract_info(post_url, download=False))
-        return info
+        return await get_video(info, post_url)
     except Exception as e:
         print(f"Error: {e}")
         return {"error": True, "message": f"Invalid response from the server: {e}"}

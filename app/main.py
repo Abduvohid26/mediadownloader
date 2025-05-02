@@ -25,6 +25,7 @@ from fastapi.responses import FileResponse
 from routers.cashe import generate_unique_id
 from fastapi.responses import StreamingResponse
 # from routers.new_inta import checker_router
+from routers.face_route import face
 import httpx
 import os
 
@@ -36,7 +37,7 @@ app.include_router(yt_router)
 app.include_router(sender)
 app.include_router(check_url)
 app.include_router(tk_router)
-
+app.include_router(face)
 
 MAX_PAGES = 4
 
