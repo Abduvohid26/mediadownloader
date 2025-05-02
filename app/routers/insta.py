@@ -296,37 +296,40 @@ manager = BrowserManager(interval=100)
 
 import base64
 
+
 async def get_instagram_direct_links(post_url: str, db, request):
     """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
-    page_pool = request.app.state.page_pool
-    page = await page_pool.get()
     try:
-        # page = await context.new_page()
+        # Sahifani navbatdan olish
+        try:
+            page = await asyncio.wait_for(request.app.state.page_pool.get(), timeout=10)
+        except asyncio.TimeoutError:
+            return {"error": True, "message": "Server band. Keyinroq urinib ko‘ring."}
 
-        # Saytga kirish
-        # await page.goto("https://sssinstagram.com/ru/story-saver")
+        # Instagram story yuklash sahifasiga kirish
 
-        # Username kiriting
+        # Username yoki URL kiriting
         await page.fill(".form__input", post_url)
         await page.click(".form__submit")
 
-        # Yuklab olish tugmasi chiqquncha kutish
+        # Yuklab olish tugmasini kutish
         await page.wait_for_selector(".button__download", state="attached", timeout=10000)
-        # Storylar uchun yuklab olish linklari
+
+        # Yuklab olish linklari
         story_elements = await page.locator(".button__download").all()
         story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
-        # Thumbnaillar
+
+        # Thumbnail linklari
         thumbnail_elements = await page.locator(".media-content__image").all()
         thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
-        print(thumbnails, "THUMBNAILS")
+        logger.info(f"THUMBNAILS: {thumbnails}")
 
-
-        # Sarlavha
+        # Sarlavha (title)
         title_elements = await page.locator(".output-list__caption p").all()
         titles = [await el.text_content() for el in title_elements]
         title = titles[0] if titles else None
 
-        # Shortcode
+        # Shortcode ajratish
         match = re.search(r'/p/([^/]+)/', post_url)
         shortcode = match.group(1) if match else "unknown"
 
@@ -334,70 +337,69 @@ async def get_instagram_direct_links(post_url: str, db, request):
             return {"error": True, "message": "Hech qanday media topilmadi."}
 
         def detect_type(url: str):
-            return "image" if url.lower().endswith(".jpg") else "video"
-        
+            return "image" if url.lower().endswith((".jpg", ".jpeg", ".png")) else "video"
+
+        # Medialar ro'yxati
         medias = []
+
         for idx, media_url in enumerate(story_links):
-            # 1. Media URL uchun
             media_id = await generate_unique_id()
             media_download = Download(id=media_id, original_url=media_url)
             db.add(media_download)
 
             media_download_url = f"https://fast.videoyukla.uz/download?id={media_id}"
-            
-            # 2. Thumbnail bo‘lsa, alohida saqlaymiz
+
             thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
             thumb_download_url = None
-            if thumb_url:
-                if thumb_url.startswith('http'):
-                    thumb_id = await generate_unique_id()
-                    thumb_download = Download(id=thumb_id, original_url=thumb_url)
-                    db.add(thumb_download)
-                    thumb_download_url = f"https://fast.videoyukla.uz/download?id={thumb_id}"
-                else:
-                    thumb_download_url = media_download_url
 
-            # Agar type "image" bo'lsa, thumb_url bilan download_url ni bir xil qilib qo'yamiz
-            if detect_type(media_url) == "image" and thumb_download_url:
-                thumb_download_url = media_download_url  # Shuning uchun thumb va download_url bir xil bo'ladi
-            
+            if thumb_url and thumb_url.startswith("http"):
+                thumb_id = await generate_unique_id()
+                thumb_download = Download(id=thumb_id, original_url=thumb_url)
+                db.add(thumb_download)
+                thumb_download_url = f"https://fast.videoyukla.uz/download?id={thumb_id}"
+            else:
+                thumb_download_url = media_download_url
+
+            # Agar type image bo‘lsa thumbnail va media url bir xil bo‘ladi
+            if detect_type(media_url) == "image":
+                thumb_download_url = media_download_url
+
             medias.append({
                 "type": detect_type(media_url),
                 "download_url": media_download_url,
                 "thumb": thumb_download_url
             })
+
         await db.commit()
 
         return {
             "error": False,
             "shortcode": shortcode,
             "hosting": "instagram",
-            "type": "album" if len(story_links) > 1 else detect_type(story_links[0]),
+            "type": "album" if len(medias) > 1 else detect_type(story_links[0]),
             "url": post_url,
             "title": title,
             "medias": medias,
         }
 
     except Exception as e:
-        print(f"Xatolik yuz berdi: {e} Page yopilmoqda")
-        await page.close()
+        logger.error(f"Xatolik yuz berdi: {e}")
         return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
-    
 
     finally:
-        if not page.is_closed():
-            error_message = await page.query_selector('.error-message')
-
-            if error_message:
-                print("⚠️ Error message topildi, sahifa yopilyapti...")
-                await page.close()
-            else:
-                try:
+        try:
+            if not page.is_closed():
+                error_message = await page.query_selector(".error-message")
+                if error_message:
+                    logger.warning("⚠️ Error message topildi, sahifa yopilyapti...")
+                    await page.close()
+                else:
                     await page.evaluate('document.querySelector(".form__input").value = ""')
-                except Exception as e:
-                    print(f"⚠️ Input tozalashda xatolik: {e}")
-                await page_pool.put(page)
-
+                    await request.app.state.page_pool.put(page)
+        except Exception as e:
+            logger.warning(f"⚠️ Sahifani yopishda xatolik: {e}")
+            if not page.is_closed():
+                await page.close()
 
 
 

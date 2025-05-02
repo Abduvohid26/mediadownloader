@@ -365,7 +365,7 @@ async def startup():
     add_task_key="add_page_task",
     add_page_func=add_page_loop,
     urls=["https://sssinstagram.com/ru/story-saver"],
-    interval=10 * 60
+    interval=12 * 60
     ))
 
     asyncio.create_task(restart_browser_loop_generic(
