@@ -389,7 +389,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
 
     finally:
         try:
-            if not page.is_closed() and page:
+            if page and not page.is_closed():
                 error_message = await page.query_selector(".error-message")
                 if error_message:
                     logger.warning("⚠️ Error message topildi, sahifa yopilyapti...")
