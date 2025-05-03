@@ -367,8 +367,8 @@ async def startup():
 
     # snaptik uchun context_proxy
     asyncio.create_task(restart_browser_loop_generic(
-        context_key="context_proxy",
-        browser_key="browser_proxy",
+        context_key="context",
+        browser_key="browser",
         page_pool_key="page_pool2",
         add_task_key="add_page_task_snaptik",
         add_page_func=add_page_loop_snaptik,
