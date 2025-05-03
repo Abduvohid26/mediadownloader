@@ -47,7 +47,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
                     if error_message1:
                         error_data = error_message1.text_content()
                         logger.info(f"Xato: {error_data}")
-                        if "@имя" in error_message:
+                        if "@имя" in error_message1:
                             if attempt < max_retries - 1:  # ikkinchi urinishga o'tish
                                 logger.info("Xatolik aniqlangan, URL qayta kiritilmoqda...")
                                 continue  # URL'ni qayta kiritish
