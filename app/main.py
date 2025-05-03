@@ -30,6 +30,7 @@ import httpx
 import os
 
 app = FastAPI()
+app.state.restart_lock = asyncio.Lock()
 # app.include_router(checker_router)
 app.include_router(insta_router)
 app.include_router(proxies)
@@ -313,7 +314,7 @@ async def startup():
     app.state.context_noproxy = context_noproxy
 
     # Proxyli variant (agar kerak bo‘lsa)
-    proxy_config = None  # Yoki: await get_proxy_config()
+    proxy_config = None #await get_proxy_config()
     if proxy_config:
         proxy_options = {
             **common_args,
@@ -350,24 +351,28 @@ async def startup():
                 pass
 
     # Sahifalarni yaratish
-    await add_initial_page(context_proxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
+    # Sahifalarni yaratish
+    await add_initial_page(context_noproxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
     await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
 
     # Page pool tasklari
-    app.state.add_page_task = asyncio.create_task(add_page_loop(context_proxy, app.state.page_pool))
-    app.state.add_page_task_snaptik = asyncio.create_task(add_page_loop_snaptik(context_proxy, app.state.page_pool2))
+    app.state.add_page_task = asyncio.create_task(add_page_loop(context_noproxy, app.state.page_pool, app))  # 🛠 TO‘G‘RILANDI
+    app.state.add_page_task_snaptik = asyncio.create_task(add_page_loop_snaptik(context_proxy, app.state.page_pool2, app))
+
 
     # Brauzerlarni yangilovchi looplar
+    # sssinstagram uchun context_noproxy
     asyncio.create_task(restart_browser_loop_generic(
-    context_key="context_noproxy",
-    browser_key="browser_noproxy",
-    page_pool_key="page_pool",
-    add_task_key="add_page_task",
-    add_page_func=add_page_loop,
-    urls=["https://sssinstagram.com/ru/story-saver"],
-    interval=12 * 60
+        context_key="context_noproxy",
+        browser_key="browser_noproxy",
+        page_pool_key="page_pool",
+        add_task_key="add_page_task",
+        add_page_func=add_page_loop,
+        urls=["https://sssinstagram.com/ru/story-saver"],
+        interval=10 * 60
     ))
 
+    # snaptik uchun context_proxy
     asyncio.create_task(restart_browser_loop_generic(
         context_key="context_proxy",
         browser_key="browser_proxy",
@@ -375,7 +380,7 @@ async def startup():
         add_task_key="add_page_task_snaptik",
         add_page_func=add_page_loop_snaptik,
         urls=["https://snaptik.app"],
-        interval=12 * 60
+        interval=10 * 60
     ))
 
 
@@ -475,39 +480,42 @@ async def get_data(request: Request):
 
 
 
-
-async def add_page_loop(context, page_pool):
+async def add_page_loop(context, page_pool, app):
     while True:
         await asyncio.sleep(0.5)
         if page_pool.qsize() < MAX_PAGES:
-            try:
-                page = await context.new_page()
-                await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
-                await page_pool.put(page)
-                print("✅ sssinstagram sahifa qo'shildi")
-            except Exception as e:
-                print(f"⚠️ sssinstagram Page yaratishda xato !: {e}")
+            async with app.state.restart_lock:
                 try:
-                    await page.close()
-                except:
-                    pass
+                    page = await context.new_page()
+                    await page.goto("https://sssinstagram.com/ru/story-saver", wait_until="load", timeout=10000)
+                    await page_pool.put(page)
+                    print("✅ sssinstagram sahifa qo'shildi")
+                except Exception as e:
+                    print(f"⚠️ sssinstagram Page yaratishda xato !: {e}")
+                    try:
+                        await page.close()
+                    except:
+                        pass
 
 
-async def add_page_loop_snaptik(context, page_pool):
+async def add_page_loop_snaptik(context, page_pool, app):
     while True:
         await asyncio.sleep(0.5)
         if page_pool.qsize() < MAX_PAGES:
-            try:
-                page = await context.new_page()
-                await page.goto("https://snaptik.app", wait_until="load", timeout=10000)
-                await page_pool.put(page)
-                print("✅ snaptik sahifa qo'shildi")
-            except Exception as e:
-                print(f"⚠️ snaptik Page yaratishda xato !: {e}")
+            async with app.state.restart_lock:
                 try:
-                    await page.close()
-                except:
-                    pass
+                    page = await context.new_page()
+                    await page.goto("https://snaptik.app", wait_until="load", timeout=10000)
+                    await page_pool.put(page)
+                    print("✅ snaptik sahifa qo'shildi")
+                except Exception as e:
+                    
+                    print(f"⚠️ snaptik Page yaratishda xato !: {e}")
+                    try:
+                        await page.close()
+                    except:
+                        pass
+
 
 from playwright.async_api import async_playwright
 import asyncio
@@ -524,79 +532,64 @@ async def restart_browser_loop_generic(
     while True:
         await asyncio.sleep(interval)
         print(f"♻️ {context_key} uchun browser va context restart qilinmoqda...")
-
-        try:
-            # 1. Eski sahifa task to'xtatiladi
-            old_task = getattr(app.state, add_task_key, None)
-            if old_task:
-                old_task.cancel()
-                try:
-                    await old_task
-                except asyncio.CancelledError:
-                    pass
-
-            # 2. Eski sahifalarni yopamiz
-            old_page_pool = getattr(app.state, page_pool_key, None)
-            if old_page_pool:
-                while not old_page_pool.empty():
+        async with app.state.restart_lock:
+            try:
+                # 1. Eski taskni bekor qilish
+                old_task = getattr(app.state, add_task_key, None)
+                if old_task:
+                    old_task.cancel()
                     try:
-                        page = await old_page_pool.get()
-                        if not page.is_closed():
-                            await page.close()
-                    except Exception as e:
-                        print(f"⚠️ Sahifa yopishda xato: {e}")
-
-            # 3. Eski context/browser ni yopamiz
-            context = getattr(app.state, context_key, None)
-            if context:
-                await context.close()
-            browser = getattr(app.state, browser_key, None)
-            if browser:
-                await browser.close()
-
-            # 4. Eski playwrightni to‘xtatamiz
-            playwright = getattr(app.state, "playwright", None)
-            if playwright:
-                await playwright.stop()
-
-            # 5. Yangi playwrightni ishga tushuramiz
-            playwright_new = await async_playwright().start()
-            setattr(app.state, "playwright", playwright_new)
-
-            # 6. Yangi browser va context yaratamiz
-            browser_new = await playwright_new.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
-            context_new = await browser_new.new_context()
-
-            setattr(app.state, browser_key, browser_new)
-            setattr(app.state, context_key, context_new)
-
-            # 7. Yangi sahifa queue yaratamiz
-            page_pool = asyncio.Queue()
-            setattr(app.state, page_pool_key, page_pool)
-
-            # 8. Har bir URL uchun yangi sahifa ochamiz
-            for url in urls:
-                try:
-                    page = await context_new.new_page()
-                    await page.goto(url, wait_until="load")
-                    await page_pool.put(page)
-                    print(f"✅ {url} sahifasi yaratildi va qo‘shildi")
-                except Exception as e:
-                    print(f"⚠️ {url} sahifasini ochishda xato: {e}")
-                    try:
-                        if not page.is_closed():
-                            await page.close()
-                    except:
+                        await old_task
+                    except asyncio.CancelledError:
                         pass
 
-            # 9. Yangi sahifa task ishga tushuramiz
-            new_task = asyncio.create_task(add_page_func(context_new, page_pool))
-            setattr(app.state, add_task_key, new_task)
+                # 2. Sahifalarni tozalash
+                old_page_pool = getattr(app.state, page_pool_key)
+                while True:
+                    try:
+                        page = await old_page_pool.get_nowait()
+                        if not page.is_closed():
+                            await page.close()
+                    except (asyncio.QueueEmpty, Exception):
+                        break
 
-            print(f"✅ {context_key} uchun to‘liq restart bajarildi!")
+                # 3. Faqat browser va contextni yangilash
+                old_browser = getattr(app.state, browser_key)
+                old_context = getattr(app.state, context_key)
+                await old_context.close()
+                await old_browser.close()
 
-        except Exception as e:
-            print(f"❌ {context_key} restartda xatolik: {e}")
+                # 4. Yangi brauzer ochish (playwrightni qayta ishga tushirmasdan)
+                playwright = app.state.playwright
+                new_browser = await playwright.chromium.launch(
+                    headless=True,
+                    args=['--no-sandbox', '--disable-setuid-sandbox']
+                )
+                new_context = await new_browser.new_context()
+                setattr(app.state, browser_key, new_browser)
+                setattr(app.state, context_key, new_context)
+
+                # 5. Yangi sahifalarni qo‘shish
+                new_page_pool = asyncio.Queue()
+                setattr(app.state, page_pool_key, new_page_pool)
+                for url in urls:
+                    try:
+                        page = await new_context.new_page()
+                        await page.goto(url, wait_until="domcontentloaded")  # Tezroq yuklash
+                        await new_page_pool.put(page)
+                        print(f"✅ {url} sahifasi qayta ochildi")
+                    except Exception as e:
+                        print(f"⚠️ {url} ochilmadi: {e}")
+
+                # 6. Yangi taskni ishga tushirish
+                setattr(app.state, add_task_key, asyncio.create_task(
+                    add_page_func(new_context, new_page_pool, app)
+                ))
+
+                print(f"✅ {context_key} muvaffaqiyatli restart qilindi!")
+            except Exception as e:
+                print(f"❌ {context_key} restartda xato: {e}")
+                await asyncio.sleep(5)  # Qayta urinishdan oldin kutish
 
 
 # async def restart_browser_loop_generic(
