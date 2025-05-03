@@ -40,7 +40,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 app.include_router(face)
 
-MAX_PAGES = 2
+MAX_PAGES = 4
 
 
 # DB sessiyasini olish
