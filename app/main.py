@@ -314,7 +314,7 @@ async def startup():
     app.state.context_noproxy = context_noproxy
 
     # Proxyli variant (agar kerak bo‘lsa)
-    proxy_config = None #await get_proxy_config()
+    proxy_config = await get_proxy_config()
     if proxy_config:
         proxy_options = {
             **common_args,
