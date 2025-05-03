@@ -40,7 +40,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 app.include_router(face)
 
-MAX_PAGES = 4
+MAX_PAGES = 2
 
 
 # DB sessiyasini olish
@@ -303,31 +303,24 @@ async def get_proxy_config():
 async def startup():
     playwright = await async_playwright().start()
     app.state.playwright = playwright  # Stopda to‘xtatish uchun kerak bo‘lishi mumkin
-
-    # Proxysiz va proxyli browser sozlamalari
     common_args = {'headless': True, 'args': ['--no-sandbox', '--disable-setuid-sandbox']}
+    proxy_config = await get_proxy_config()
+    print(proxy_config, "proxy_config")
+    if proxy_config:
+        common_args['proxy'] = {
+            'server': f"http://{proxy_config['server'].replace('http://', '')}",
+            'username': proxy_config['username'],
+            'password': proxy_config['password']
+        }
 
-    # Proxy yo‘q
     browser_noproxy = await playwright.chromium.launch(**common_args)
     context_noproxy = await browser_noproxy.new_context()
     app.state.browser_noproxy = browser_noproxy
     app.state.context_noproxy = context_noproxy
 
     # Proxyli variant (agar kerak bo‘lsa)
-    proxy_config = await get_proxy_config()
-    if proxy_config:
-        proxy_options = {
-            **common_args,
-            'proxy': {
-                'server': f"http://{proxy_config['server'].replace('http://', '')}",
-                'username': proxy_config['username'],
-                'password': proxy_config['password']
-            }
-        }
-    else:
-        proxy_options = common_args
 
-    browser_proxy = await playwright.chromium.launch(**proxy_options)
+    browser_proxy = await playwright.chromium.launch(**common_args)
     context_proxy = await browser_proxy.new_context()
     app.state.browser = browser_proxy
     app.state.context = context_proxy
