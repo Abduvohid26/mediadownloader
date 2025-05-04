@@ -40,7 +40,7 @@ app.include_router(check_url)
 app.include_router(tk_router)
 app.include_router(face)
 
-MAX_PAGES = 4
+MAX_PAGES = 3
 
 
 # DB sessiyasini olish
@@ -168,9 +168,15 @@ async def startup():
     app.state.browser = browser_proxy
     app.state.context = context_proxy
 
+    browser_face = await playwright.chromium.launch(**common_args)
+    context_face = await browser_face.new_context()
+    app.state.browser_face = browser_face
+    app.state.context_face = context_face
+
     # Sahifa pool-lar
     app.state.page_pool = asyncio.Queue()
     app.state.page_pool2 = asyncio.Queue()
+    app.state.page_pool3 = asyncio.Queue()
 
     # Dastlabki sahifalarni qo‘shish helper funksiyasi
     async def add_initial_page(context, url: str, pool: asyncio.Queue, name: str):
@@ -190,10 +196,14 @@ async def startup():
     # Sahifalarni yaratish
     await add_initial_page(context_noproxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
     await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
+    await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook")
+
 
     # Page pool tasklari
     app.state.add_page_task = asyncio.create_task(add_page_loop(context_noproxy, app.state.page_pool, app))  # 🛠 TO‘G‘RILANDI
     app.state.add_page_task_snaptik = asyncio.create_task(add_page_loop_snaptik(context_proxy, app.state.page_pool2, app))
+    app.state.add_page_task_face = asyncio.create_task(add_page_loop_facebook(context_face, app.state.page_pool3, app))
+
 
 
     # Brauzerlarni yangilovchi looplar
@@ -219,6 +229,17 @@ async def startup():
         interval=10 * 60
     ))
 
+    asyncio.create_task(restart_browser_loop_generic(
+        context_key="context_face",
+        browser_key="browser_face",
+        page_pool_key="page_pool3",
+        add_task_key="add_page_task_face",
+        add_page_func=add_page_loop_facebook,
+        urls=["https://facebook.com"],
+        interval=20 * 30
+    ))
+
+
 
 
 @app.on_event("shutdown")
@@ -228,6 +249,7 @@ async def shutdown():
         for name in [
             'browser', 'context',
             'browser_noproxy', 'context_noproxy',
+            'browser_face', 'context_face',
         ]
     ]
     for component in components:
@@ -251,7 +273,9 @@ async def shutdown():
 async def get_data(request: Request):
     PAGE_POOL = request.app.state.page_pool
     PAGE_POOL2 = request.app.state.page_pool2
-    return {"status": "ok", "page_count": PAGE_POOL.qsize(), "page_count2": PAGE_POOL2.qsize()}
+    PAGE_POOL3 = request.app.state.page_pool3
+    return {"status": "ok", "page_count": PAGE_POOL.qsize(), "page_count2": PAGE_POOL2.qsize(), "page_count3": PAGE_POOL3.qsize()}
+
 
 
 
@@ -293,6 +317,23 @@ async def add_page_loop_snaptik(context, page_pool, app):
                     except:
                         pass
 
+async def add_page_loop_facebook(context, page_pool, app):
+    while True:
+        await asyncio.sleep(0.5)
+        if page_pool.qsize() < MAX_PAGES:
+            async with app.state.restart_lock:
+                try:
+                    page = await context.new_page()
+                    await page.goto("https://facebook.com", wait_until="load", timeout=10000)
+                    await page_pool.put(page)
+                    print("✅ facebook sahifa qo'shildi")
+                except Exception as e:
+
+                    print(f"⚠️ facebook Page yaratishda xato !: {e}")
+                    try:
+                        await page.close()
+                    except:
+                        pass
 
 from playwright.async_api import async_playwright
 import asyncio
