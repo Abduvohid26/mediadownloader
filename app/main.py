@@ -61,8 +61,13 @@ async def generate_download(original_url: str, db: AsyncSession = Depends(get_db
     await db.commit()
     # return {"download_url": f"http://localhost:8000/download?id={file_id}"}
     return {"download_url": f"https://videoyukla.uz/download?id={file_id}"}
-
-
+import os
+@app.get("/get/image")
+async def get_image():
+    file_path = "screenshot.png"
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    return {"error": "File not found"}
 
 
 @app.get("/download", include_in_schema=False)
@@ -147,7 +152,7 @@ async def startup():
     playwright = await async_playwright().start()
     app.state.playwright = playwright  # Stopda to‘xtatish uchun kerak bo‘lishi mumkin
     common_args = {'headless': True, 'args': ['--no-sandbox', '--disable-setuid-sandbox']}
-    proxy_config = await get_proxy_config()
+    proxy_config = None #await get_proxy_config()
     print(proxy_config, "proxy_config")
     # if proxy_config:
     #     common_args['proxy'] = {

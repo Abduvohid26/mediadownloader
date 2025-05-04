@@ -16,10 +16,16 @@ async def download_from_snaptik(url, request):
                 return {"error": True, "message": "Server band. Iltimos, keyinroq urinib ko‘ring."}
 
             try:
-                await page.wait_for_timeout(1000)
+                try:
+                    await page.wait_for_selector('button:has-text("Consent")', timeout=10000)
+                    await page.click('button:has-text("Consent")')
+                    print("✅ Consent bosildi")
+                except:
+                    print("❌ Consent oynasi topilmadi")
+                await page.wait_for_timeout(1000)   
                 await page.mouse.click(10, 10)
-                await page.wait_for_timeout(1000)
-                await page.mouse.click(10, 10)
+                
+                await page.screenshot(path="screenshot.png")
                 await page.fill("input[name='url']", url)
                 await page.click("button[type='submit'][aria-label='Get']")
                 await page.wait_for_timeout(4000)
