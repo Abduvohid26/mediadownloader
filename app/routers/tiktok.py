@@ -18,6 +18,8 @@ async def download_from_snaptik(url, request):
             try:
                 await page.wait_for_timeout(1000)
                 await page.mouse.click(10, 10)
+                await page.wait_for_timeout(1000)
+                await page.mouse.click(10, 10)
                 await page.fill("input[name='url']", url)
                 await page.click("button[type='submit'][aria-label='Get']")
                 await page.wait_for_timeout(4000)
