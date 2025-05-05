@@ -5,10 +5,13 @@ import asyncio
 import time
 import json
 import os
+import logging
 
 load_dotenv()
 
 search_youtube = APIRouter()
+logging.getLogger("google").setLevel(logging.ERROR)
+
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY, cache_discovery=False)
