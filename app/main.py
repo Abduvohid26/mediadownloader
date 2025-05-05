@@ -26,6 +26,7 @@ from routers.cashe import generate_unique_id
 from fastapi.responses import StreamingResponse
 # from routers.new_inta import checker_router
 from routers.face_route import face
+from routers.yt_search.search_route import search_youtube
 import httpx
 import httpx
 
@@ -39,8 +40,9 @@ app.include_router(sender)
 app.include_router(check_url)
 app.include_router(tk_router)
 app.include_router(face)
+app.include_router(search_youtube)
 
-MAX_PAGES = 3
+MAX_PAGES = 2
 
 
 # DB sessiyasini olish
