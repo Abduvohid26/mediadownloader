@@ -49,6 +49,7 @@ async def get_audio_url(video_url: str):
         "-j",
         "-f",
         "bestaudio[ext=m4a]",
+        "--match-filter", "duration>50 & duration<600",
         video_url
     ]
     proc = await asyncio.create_subprocess_exec(
@@ -66,13 +67,8 @@ async def get_audio_url(video_url: str):
 @search_youtube.get("/search")
 async def search(query: str, max_results: int = 10):
     start_time = time.time()
-
-    # 1. Search qilishni background threadda bajaramiz
-    search_results = await search_youtube_(query, max_results)
-
-    # 2. Har bir natija uchun paralel yt-dlp ishlatamiz
+    search_results = await search_youtube_(f"{query} music", max_results)
     tasks = [get_audio_url(item["url"]) for item in search_results]
     audio_links = await asyncio.gather(*tasks)
-
     print("⏱️ Finished in:", round(time.time() - start_time, 2), "seconds")
     return {"results": audio_links}
