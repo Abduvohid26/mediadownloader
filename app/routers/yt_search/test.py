@@ -1,50 +1,157 @@
-import yt_dlp
-import asyncio
-import typing
+# import yt_dlp
+# import asyncio
+# from concurrent.futures import ThreadPoolExecutor
 
-AUDIO_DIRECT_OPTIONS = {
-    "quiet": True,
-    "noprogress": True,
-    "no_warnings": True,
-    "skip_download": True,
-    "extract_flat": False,  # real media link olish
-    "no_playlist": True,
-    "format": "bestaudio[ext=m4a]",  # eng yaxshi audio format
+# AUDIO_OPTIONS = {
+#     "quiet": True,
+#     "noprogress": True,
+#     "no_warnings": True,
+#     "skip_download": True,
+#     "format": "bestaudio[ext=m4a]",  # to'g'ridan-to'g'ri audio link
+#     "no_playlist": True,
+# }
+
+# def _extract_audio_info(entry):
+#     return {
+#         "title": entry.get("title"),
+#         "direct_url": entry.get("url"),
+#     }
+
+# def sync_extract_audio(url: str):
+#     with yt_dlp.YoutubeDL(AUDIO_OPTIONS) as ydl:
+#         info = ydl.extract_info(url, download=False)
+#         return _extract_audio_info(info)
+
+# async def extract_audio(url: str):
+#     loop = asyncio.get_running_loop()
+#     with ThreadPoolExecutor(max_workers=10) as pool:
+#         return await loop.run_in_executor(pool, sync_extract_audio, url)
+
+# async def fast_parallel_links(query: str, limit=10):
+#     # Avval video ID larini olish
+#     with yt_dlp.YoutubeDL({"quiet": True, "extract_flat": True, "skip_download": True}) as ydl:
+#         results = ydl.extract_info(f"ytsearch{limit}:{query}", download=False)
+#         urls = [f"https://www.youtube.com/watch?v={entry['id']}" for entry in results["entries"][:limit]]
+
+#     # Parallel ishlov berish
+#     tasks = [extract_audio(url) for url in urls]
+#     return await asyncio.gather(*tasks)
+
+# # Ishga tushirish
+# import time
+# async def main():
+#     start = time.time()
+#     results = await fast_parallel_links("shoxrux rep", limit=10)
+#     for r in results:
+#         print(f"{r['title']} — {r['direct_url']}")
+#     print("✅ Bajardi in", round(time.time() - start, 2), "seconds")
+
+# asyncio.run(main())
+
+
+
+import yt_dlp
+import typing
+# from cashe import redis_client
+import redis
+import os
+import asyncio
+import json
+redis_host = os.environ.get("REDIS_HOST", "redis")
+redis_port = os.environ.get("REDIS_PORT", 6379)
+redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+
+
+TRACK_SEARCH_STATIC_OPTIONS = {
+  "quiet": True,
+  "noprogress": True,
+  "no_warnings": True,
+  "skip_download": True,
+  "extract_flat": True,
+  "no_playlist": True,
+  "match_filter": yt_dlp.utils.match_filter_func(
+    "duration > 50 & duration < 600 & original_url!*=/shorts/ "
+    "& url!*=/shorts/ & !is_live & live_status!=is_upcoming & availability=public"
+  ),
 }
 
-def _extract_audio_info(entry):
-    return {
-        "title": entry.get("title"),
-        "direct_url": entry.get("url"),  # Audio faylning direct linki
-    }
 
-# Asinxron video qidirish
-async def extract_audio(query: str, proxy: typing.Optional[str] = None):
-    options = dict(AUDIO_DIRECT_OPTIONS)
-    if proxy:
-        options["proxy"] = proxy
-    with yt_dlp.YoutubeDL(options) as ydl:
-        result = ydl.extract_info(query, download=False)
-        return _extract_audio_info(result)
+def _track_search_deserialize(track):
+  return {
+    "id": track["id"],
+    "title": track["title"],
+    "performer": track["channel"],
+    "duration": track["duration"] if "duration" in track and track["duration"] else 0,
+    "thumbnail_url": track["thumbnails"][0]["url"],
+    # "url": f"https://fast.videoyukla.uz/youtube?id={track['id']}"
+    "url": f"http://localhost:8000/youtube?id={track['id']}"
 
-# Asinxron parallel qidiruv
-async def fast_parallel_links(query: str, limit=10):    
-    with yt_dlp.YoutubeDL({"quiet": True, "extract_flat": True, "skip_download": True}) as ydl:
-        search_results = ydl.extract_info(f"ytsearch{limit}:{query}", download=False)
+  }
+
+async def track_backend_yt_dlp_search(query: str, offset: int, limit: int, proxy: typing.Union[str, None] = None):
+  query = query + " music"
+  track_search_options = dict(TRACK_SEARCH_STATIC_OPTIONS)
+
+  if proxy:
+    track_search_options["proxy"] = proxy
+
+  with yt_dlp.YoutubeDL(track_search_options) as ytdlp:
+    search_results = ytdlp.extract_info(f"ytsearch{offset+limit}:{query}")["entries"]
+    deserialized_search_results = [_track_search_deserialize(search_result) for search_result in search_results]
+    for track in deserialized_search_results:
+        redis_client.set(track["id"], track["url"], 3600)
+    return deserialized_search_results[offset:offset+limit]
+  
+# async def update_direct_links(track):
+#     options = {
+#         "quiet": True,
+#         "noprogress": True,
+#         "no_warnings": True,
+#         "skip_download": True,
+#         "format": "bestaudio[ext=m4a]",
+#     }
+#     with yt_dlp.YoutubeDL(options) as ydl:
+#         info = ydl.extract_info(f"https://www.youtube.com/watch?v={track['id']}", download=False)
+#         direct_url = info["url"]
+#         redis_client.set(track["id"], direct_url)
+#     print("set qilindi")
+
+async def update_direct_links(video_id: str):
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    cmd = [
+        "yt-dlp",
+        "--simulate",
+        "--skip-download",
+        "-j",
+        "-f",
+        "bestaudio[ext=m4a]",
+        "--match-filter", "duration>50 & duration<600",
+        video_url
+    ]
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL
+    )
+    stdout, _ = await proc.communicate()
+    if stdout:
+        data = json.loads(stdout.decode())
+        url = data.get("url")
+        redis_client.set(video_id, url, 3600)
+        print("set qilindi", url)
         
-        # URL ni to'g'ri formatda olish
-        urls = [entry["url"] for entry in search_results["entries"][:limit]]
-    
-    # Har bir video uchun parallel ravishda link olish
-    tasks = [extract_audio(url) for url in urls]
-    return await asyncio.gather(*tasks)
-import time
-# Asinxron ishga tushurish
-async def main():
-    curr_time = time.time()
-    results = await fast_parallel_links("shoxrux rep", limit=10)  # 10 ta result
-    for res in results:
-        print(f"{res['title']} — {res['direct_url']}")
-    print("time", time.time() - curr_time)
-# Asinxron ishni boshqarish
+
+
+
+# import time
+# import asyncio
+# async def main():
+#     start = time.time()
+#     results = await track_backend_yt_dlp_search("shoxrux rep", 0, 10)
+#     print("✅ Bajardi in", round(time.time() - start, 2), "seconds")
+#     tasks = [update_direct_links(track) for track in results]
+#     await asyncio.gather(*tasks)  # Run in parallel
+#     print(results)
+#     return results
+
 # asyncio.run(main())

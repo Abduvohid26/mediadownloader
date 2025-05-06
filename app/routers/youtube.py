@@ -184,9 +184,9 @@ import redis
 from typing import Dict, Optional, List, Any
 import traceback
 async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Dict:
-    print(info, "info")
-    with open("json.txt", "w") as f:
-        f.write(str(info))
+    # print(info, "info")
+    # with open("json.txt", "w") as f:
+    #     f.write(str(info))
     """
     YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
     """
