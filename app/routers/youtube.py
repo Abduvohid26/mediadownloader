@@ -184,6 +184,9 @@ import redis
 from typing import Dict, Optional, List, Any
 import traceback
 async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Dict:
+    print(info, "info")
+    with open("json.txt", "w") as f:
+        f.write(str(info))
     """
     YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
     """
@@ -231,16 +234,17 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
                 logging.exception(f"Error processing format {data.get('format_id')}")
 
         # Thumbnail tanlash: qoniqarli o'lchamga ega bo'lganini tanlaymiz
-        thumbnail = None
-        for thumb in reversed(info.get("thumbnails", [])):
-            try:
-                if (thumb.get("url", "").endswith((".jpg")) and
-                        (thumb.get("width", 0) >= 336 or thumb.get("height", 0) >= 188)):
-                    thumbnail = thumb["url"]
-                    break
-            except Exception as e:
-                logging.exception("Error processing thumbnail:")
-                continue
+        thumbnail = info.get("thumbnail", None)
+        if thumbnail is None:
+            for thumb in reversed(info.get("thumbnails", [])):
+                try:
+                    if (thumb.get("url", "").endswith((".jpg")) and
+                            (thumb.get("width", 0) >= 336 or thumb.get("height", 0) >= 188)):
+                        thumbnail = thumb["url"]
+                        break
+                except Exception as e:
+                    logging.exception("Error processing thumbnail:")
+                    continue
 
         return {
             "error": False,
