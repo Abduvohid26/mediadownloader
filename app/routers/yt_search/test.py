@@ -83,8 +83,8 @@ def _track_search_deserialize(track):
     "performer": track["channel"],
     "duration": track["duration"] if "duration" in track and track["duration"] else 0,
     "thumbnail_url": track["thumbnails"][0]["url"],
-    # "url": f"https://fast.videoyukla.uz/youtube?id={track['id']}"
-    "url": f"http://localhost:8000/youtube?id={track['id']}"
+    "url": f"https://fast.videoyukla.uz/youtube?id={track['id']}"
+    # "url": f"http://localhost:8000/youtube?id={track['id']}"
 
   }
 
