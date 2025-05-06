@@ -23,9 +23,21 @@ async def get_direct_links_route(query: str, background_tasks: BackgroundTasks, 
     background_tasks.add_task(gather_to_forcee, results)
 
     return results
-async def gather_to_forcee(results, batch_size=10):  # batch_size ni server quvvatiga qarab o'zgartiring
-    for i in range(0, len(results), batch_size):
-        batch = results[i:i + batch_size]
+async def gather_to_forcee(results, batch_size=10):
+    # Natijalarni ikkiga bo'lamiz
+    half = len(results) // 2
+    first_half = results[:half]
+    second_half = results[half:]
+    
+    # Birinchi yarmini batchlar bilan ishlaymiz
+    for i in range(0, len(first_half), batch_size):
+        batch = first_half[i:i + batch_size]
+        tasks = [update_direct_links(track["id"]) for track in batch if track.get("id")]
+        await asyncio.gather(*tasks)
+    
+    # Ikkinchi yarmini batchlar bilan ishlaymiz
+    for i in range(0, len(second_half), batch_size):
+        batch = second_half[i:i + batch_size]
         tasks = [update_direct_links(track["id"]) for track in batch if track.get("id")]
         await asyncio.gather(*tasks)
 
