@@ -27,12 +27,14 @@ from fastapi.responses import StreamingResponse
 # from routers.new_inta import checker_router
 from routers.face_route import face
 from routers.yt_search.search_route import search_youtube
+from routers.yt_search.test_route import test_route
 import httpx
 import httpx
 
 app = FastAPI()
 app.state.restart_lock = asyncio.Lock()
 # app.include_router(checker_router)
+app.include_router(test_route)
 app.include_router(insta_router)
 app.include_router(proxies)
 app.include_router(yt_router)

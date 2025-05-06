@@ -35,11 +35,11 @@ async def get_audio_direct_links(query: str, limit: int = 10, proxy: typing.Opti
         entries = search_results.get("entries", [])[:limit]
         return [_extract_audio_info(entry) for entry in entries]
 
-import time
-async def main():
-    curr = time.time()
-    results = await get_audio_direct_links("shoxrux rep", 10)
-    for r in results:
-        print(f"{r['title']} — {r['direct_url']}")
-    print("Spend time", time.time() - curr)
-asyncio.run(main())
+# import time
+# async def main():
+#     curr = time.time()
+#     results = await get_audio_direct_links("shoxrux rep", 10)
+#     for r in results:
+#         print(f"{r['title']} — {r['direct_url']}")
+#     print("Spend time", time.time() - curr)
+# asyncio.run(main())
