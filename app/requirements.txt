@@ -67,4 +67,4 @@ yt-dlp==2025.3.31
 google-api-python-client
 moviepy
 aiofiles
-shazamio
+shazamio==0.8.0
