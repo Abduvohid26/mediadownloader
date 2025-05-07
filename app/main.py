@@ -28,7 +28,7 @@ from fastapi.responses import StreamingResponse
 from routers.face_route import face
 from routers.yt_search.search_route import search_youtube
 from routers.yt_search.test_route import test_route
-
+from routers.shazam_.shazam_route import shazam_router
 import httpx
 import httpx
 
@@ -43,9 +43,10 @@ app.include_router(sender)
 app.include_router(check_url)
 app.include_router(tk_router)
 app.include_router(face)
+app.include_router(shazam_router)
 # app.include_router(search_youtube)
 
-MAX_PAGES = 2
+MAX_PAGES = 1
 
 
 # DB sessiyasini olish
