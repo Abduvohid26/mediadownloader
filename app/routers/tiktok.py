@@ -15,8 +15,13 @@ async def download_from_snaptik(url, request):
         try:
             await page.wait_for_timeout(1000)
             await page.fill("input[name='vid']", url)
+            try:
+                await page.wait_for_selector('button:has-text("Consent")', timeout=10000)
+                await page.click('button:has-text("Consent")')
+                logger.info("✅ Consent bosildi")
+            except:
+                logger.warning("❌ Consent oynasi topilmadi")
             await page.wait_for_selector("button#search-btn", timeout=5000)
-            await page.screenshot(path="screenshot.png", full_page=True)
             await page.click("button#search-btn")
             await page.wait_for_timeout(4000)
 
