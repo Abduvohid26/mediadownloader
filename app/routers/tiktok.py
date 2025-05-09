@@ -16,7 +16,7 @@ async def download_from_snaptik(url, request):
             await page.wait_for_timeout(1000)
             await page.fill("input[name='vid']", url)
             await page.wait_for_selector("button#search-btn", timeout=5000)
-            await page.sreenshot(path="screenshot.png")
+            await page.screenshot(path="screenshot.png", full_page=True)
             await page.click("button#search-btn")
             await page.wait_for_timeout(4000)
 
