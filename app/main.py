@@ -46,7 +46,7 @@ app.include_router(face)
 app.include_router(shazam_router)
 # app.include_router(search_youtube)
 
-MAX_PAGES = 3
+MAX_PAGES = 2
 
 
 # DB sessiyasini olish
@@ -425,4 +425,4 @@ async def restart_browser_loop_generic(
                 print(f"✅ {context_key} muvaffaqiyatli restart qilindi!")
             except Exception as e:
                 print(f"❌ {context_key} restartda xato: {e}")
-                await asyncio.sleep(5)  
+                await asyncio.sleep(2)  
