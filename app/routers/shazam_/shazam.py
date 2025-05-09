@@ -29,12 +29,25 @@ def _track_popular_deserialize(track):
 async def get_shazam_text(query):
     results = await shazam.search_track(query=query, limit=1)
     track = results["tracks"]["hits"][0]
-    return {
+    response_data = {
         "id": track["key"],
         "title": track["heading"]["title"],
         "performer": track["heading"]["subtitle"],
         "duration": 0
     }
+    track_info = shazam.track_about(track["key"])
+    print(track_info)
+    if "sections" in track_info:
+        for section in track_info["sections"]:
+            if section["type"] == "LYRICS":
+                lyrics = section["text"]
+                print("\n".join(lyrics))
+                response_data["text"] = lyrics
+                break
+    else:
+        response_data["text"] = ""
+    return response_data
+
 
 
 # mp3 data serializer
@@ -50,12 +63,14 @@ async def get_shazam_mp3(mp3: UploadFile):
         track = result.get("track")
         if not track:
             return {"detail": "Qoshiq aniqlanmadi"}
-        return {
+
+        data = {
             "id": track["key"],
             "title": track.get("title"),
             "performer": track.get("subtitle"),
             "duration": 0,
         }
+        return data
     finally:
         os.remove(file_path)
         print("DELETED")

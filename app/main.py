@@ -46,7 +46,7 @@ app.include_router(face)
 app.include_router(shazam_router)
 # app.include_router(search_youtube)
 
-MAX_PAGES = 1
+MAX_PAGES = 3
 
 
 # DB sessiyasini olish
@@ -212,7 +212,8 @@ async def startup():
     # Sahifalarni yaratish
     # Sahifalarni yaratish
     await add_initial_page(context_noproxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
-    await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
+    # await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
+    await add_initial_page(context_proxy, "https://tiktokio.com", app.state.page_pool2, "Snaptik")
     await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook")
 
 
@@ -242,7 +243,7 @@ async def startup():
         page_pool_key="page_pool2",
         add_task_key="add_page_task_snaptik",
         add_page_func=add_page_loop_snaptik,
-        urls=["https://snaptik.app"],
+        urls=["https://tiktokio.com"],
         interval=10 * 60
     ))
 
@@ -323,7 +324,7 @@ async def add_page_loop_snaptik(context, page_pool, app):
             async with app.state.restart_lock:
                 try:
                     page = await context.new_page()
-                    await page.goto("https://snaptik.app", wait_until="load", timeout=10000)
+                    await page.goto("https://tiktokio.com", wait_until="load", timeout=10000)
                     await page_pool.put(page)
                     print("✅ snaptik sahifa qo'shildi")
                 except Exception as e:
