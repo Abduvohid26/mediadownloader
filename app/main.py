@@ -158,7 +158,7 @@ async def startup():
     playwright = await async_playwright().start()
     app.state.playwright = playwright  # Stopda to‘xtatish uchun kerak bo‘lishi mumkin
     common_args = {'headless': True, 'args': ['--no-sandbox', '--disable-setuid-sandbox']}
-    proxy_config = await get_proxy_config()
+    proxy_config = None #await get_proxy_config()
     print(proxy_config, "proxy_config")
     # if proxy_config:
     #     common_args['proxy'] = {
