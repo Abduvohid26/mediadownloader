@@ -92,7 +92,15 @@ async def download_from_snaptik(url, request):
         except Exception as e:
             logger.error(f"❌ Xatolik: {e}")
             return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
-    
+        finally:
+            if not page.is_closed():
+                try:
+                    await page.reload()
+                    await request.app.state.page_pool2.put(page)
+                except Exception as e:
+                    logger.warning(f"⚠️ Sahifani qayta navbatga qo‘yishda xatolik: {e}")
+                    await page.close()
+
 
 # async def download_from_snaptik(url, request):
 #     """Snaptik orqali TikTok videolarini yuklab olish funksiyasi."""
