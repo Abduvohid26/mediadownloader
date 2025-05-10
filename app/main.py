@@ -158,7 +158,7 @@ async def startup():
     playwright = await async_playwright().start()
     app.state.playwright = playwright  # Stopda to‘xtatish uchun kerak bo‘lishi mumkin
     common_args = {'headless': True, 'args': ['--no-sandbox', '--disable-setuid-sandbox']}
-    proxy_config = await get_proxy_config()
+    proxy_config = None#await get_proxy_config()
     print(proxy_config, "proxy_config")
     # if proxy_config:
     #     common_args['proxy'] = {
@@ -212,8 +212,8 @@ async def startup():
     # Sahifalarni yaratish
     # Sahifalarni yaratish
     await add_initial_page(context_noproxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
-    # await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
-    await add_initial_page(context_proxy, "https://tiktokio.com", app.state.page_pool2, "Snaptik")
+    await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
+    # await add_initial_page(context_proxy, "https://tiktokio.com", app.state.page_pool2, "Snaptik")
     await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook")
 
 
@@ -243,7 +243,8 @@ async def startup():
         page_pool_key="page_pool2",
         add_task_key="add_page_task_snaptik",
         add_page_func=add_page_loop_snaptik,
-        urls=["https://tiktokio.com"],
+        # urls=["https://tiktokio.com"],
+        urls=["https://snaptik.app"],
         interval=10 * 60
     ))
 
@@ -324,7 +325,8 @@ async def add_page_loop_snaptik(context, page_pool, app):
             async with app.state.restart_lock:
                 try:
                     page = await context.new_page()
-                    await page.goto("https://tiktokio.com", wait_until="load", timeout=10000)
+                    # await page.goto("https://tiktokio.com", wait_until="load", timeout=10000)
+                    await page.goto("https://snaptik.app", wait_until="load", timeout=10000)
                     await page_pool.put(page)
                     print("✅ snaptik sahifa qo'shildi")
                 except Exception as e:
