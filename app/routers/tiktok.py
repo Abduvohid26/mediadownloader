@@ -285,10 +285,19 @@ async def download_from_snaptik(url, request):
             #     return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
 
     finally:
-        if browser is not None:
-            await browser.close()
-        if page is not None:
-            await playwright.stop()
+        try:
+            if browser is not None:
+                await browser.close()
+                print("Brauzer yopildi.")
+        except Exception as e:
+            print(f"Brauzerni yopishda xatolik: {e}")
+        try:
+            if playwright is not None and hasattr(playwright, 'stop'):
+                await playwright.stop()
+                print("Playwright yopildi.")
+        except Exception as e:
+            print(f"Playwrightni yopishda xatolik: {e}")
+
         # Sahifani tozalab, navbatga qaytarish yoki yopish
         if not page.is_closed():
             try:
