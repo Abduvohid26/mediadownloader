@@ -35,7 +35,7 @@ async def get_shazam_text(query):
         "performer": track["heading"]["subtitle"],
         "duration": 0
     }
-    track_info = shazam.track_about(track["key"])
+    track_info = await shazam.track_about(track["key"])
     print(track_info)
     if "sections" in track_info:
         for section in track_info["sections"]:
