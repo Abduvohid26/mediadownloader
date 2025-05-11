@@ -100,9 +100,11 @@ logger = logging.getLogger(__name__)
 #                 except Exception as e:
 #                     logger.warning(f"⚠️ Sahifani qayta navbatga qo‘yishda xatolik: {e}")
 #                     await page.close()
-
+import time
 
 async def download_from_snaptik(url, request):
+    print("Started")
+    start_time = time.time()
     """Snaptik orqali TikTok videolarini yuklab olish funksiyasi."""
     page = None
 
@@ -182,7 +184,7 @@ async def download_from_snaptik(url, request):
                                 result["type"] = "image"
                 if not result["medias"]:
                     return {"error": True, "message": "Hech qanday media topilmadi."}
-
+                print(time.time() - start_time, "Spend time")
                 return result
 
             except Exception as e:
