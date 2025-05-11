@@ -285,8 +285,10 @@ async def download_from_snaptik(url, request):
             #     return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
 
     finally:
-        await browser.close()
-        await playwright.stop()
+        if browser is not None:
+            await browser.close()
+        if page is not None:
+            await playwright.stop()
         # Sahifani tozalab, navbatga qaytarish yoki yopish
         if not page.is_closed():
             try:
