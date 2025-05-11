@@ -46,7 +46,7 @@ app.include_router(face)
 app.include_router(shazam_router)
 # app.include_router(search_youtube)
 
-MAX_PAGES = 20
+MAX_PAGES = 10
 
 
 # DB sessiyasini olish
