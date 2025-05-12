@@ -76,13 +76,13 @@ async def serializer_data(data, url):
     if not inner_data or not isinstance(inner_data, dict):
         return {"status": "error", "message": "Invalid response from the server."}
 
-    video_info = inner_data.get("video_info")
-    mp4_url = inner_data.get("mp4")
+    video_info = inner_data.get("video_info", None)
+    mp4_url = inner_data.get("mp4")   
     video_img = inner_data.get("video_img")
     uuid4 = str(uuid.uuid4())
 
 
-    if not video_info or not mp4_url or not video_img:
+    if not mp4_url or not video_img:
         return {"status": "error", "message": "Missing video data in the response."}
     new_url = f"https://fast.videoyukla.uz/tiktok?id={uuid4}"
     # new_url = f"http://localhost:8000/tiktok?id={uuid4}"
