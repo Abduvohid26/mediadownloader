@@ -155,6 +155,7 @@ async def get_proxy_config():
 
 @app.on_event("startup")
 async def startup():
+    app.state.click_info = False
     playwright = await async_playwright().start()
     app.state.playwright = playwright  # Stopda to‘xtatish uchun kerak bo‘lishi mumkin
     common_args = {'headless': True, 'args': ['--no-sandbox', '--disable-setuid-sandbox']}
