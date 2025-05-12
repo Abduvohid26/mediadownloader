@@ -84,7 +84,7 @@ async def serializer_data(data, url):
 
     if not mp4_url or not video_img:
         return {"status": "error", "message": "Missing video data in the response."}
-    new_url = f"https://fast.videoyukla.uz/tiktok?id={uuid4}"
+    new_url = f"https://videoyukla.uz/tiktok?id={uuid4}"
     # new_url = f"http://localhost:8000/tiktok?id={uuid4}"
     redis_client.set(uuid4, mp4_url, 3600)
 
