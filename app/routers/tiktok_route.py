@@ -23,7 +23,7 @@ async def tk_media(tk_url: str, request: Request):
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.post("https://downloader.bot/api/tiktok/info", json={"url": tk_url})
             data = response.json()
-            return await serializer_data(data)
+            return await serializer_data(data, tk_url)
     except Exception as e:
         print("Xatolik Yuz Berdi: ", e)
         return {"status": "error", "message": "Invalid response from the server."}
@@ -48,7 +48,7 @@ async def tk_media_service(request: Request, url: TkSchema = Form(...)):
             response = await client.post("https://downloader.bot/api/tiktok/info", json={"url": url.url.strip()})
             data = response.json()
             await asyncio.sleep(3.5)
-            return await serializer_data(data)
+            return await serializer_data(data, url)
     except Exception as e:
         print("Xatolik Yuz Berdi: ", e)
         return {"status": "error", "message": "Invalid response from the server."}
@@ -68,7 +68,7 @@ async def tk_media_service(request: Request, url: TkSchema = Form(...)):
 import uuid
 
 
-async def serializer_data(data):
+async def serializer_data(data, url):
     if not data or not isinstance(data, dict):
         return {"status": "error", "message": "Invalid response from the server."}
 
@@ -95,6 +95,7 @@ async def serializer_data(data):
         "hosting": "tiktok",
         "type": "video",
         "title": video_info,
+        "url": url,
         "medias": [
             {
                 "type": "video",
