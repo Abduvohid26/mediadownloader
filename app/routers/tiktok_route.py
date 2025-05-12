@@ -106,15 +106,17 @@ async def serializer_data(data, url):
     }
 
 
-
 @tk_router.get("/tiktok/", include_in_schema=False)
 async def get_stream_(id: str):
     print(id, "id")
     value = redis_client.get(id)
     print(value, "value")
+    
     if not value:
         raise HTTPException(status_code=500, detail="Internal server error1")
+    
     url = value.decode("utf-8")
+    
     async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
         try:
             head_resp = await head_client.head(url)
@@ -141,6 +143,6 @@ async def get_stream_(id: str):
         iterfile(),
         media_type=content_type,
         headers={
-            "Content-Disposition": f'inline; filename="ziyotech"',
+            "Content-Disposition": 'attachment; filename="ziyotech.mp4"',  # Faylni brauzerga yuklab olish uchun
         }
     )
