@@ -46,7 +46,7 @@ app.include_router(face)
 app.include_router(shazam_router)
 # app.include_router(search_youtube)
 
-MAX_PAGES = 10
+MAX_PAGES = 5
 
 
 # DB sessiyasini olish
@@ -189,6 +189,10 @@ async def startup():
     context_face = await browser_face.new_context()
     app.state.browser_face = browser_face
     app.state.context_face = context_face
+
+    browser_extra = await playwright.chromium.launch(**common_args)
+    extra_context = await browser_extra.new_context()
+    app.state.extra_context = extra_context
 
     # Sahifa pool-lar
     app.state.page_pool = asyncio.Queue()
