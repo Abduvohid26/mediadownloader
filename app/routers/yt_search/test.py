@@ -57,6 +57,10 @@ import redis
 import os
 import asyncio
 import json
+from routers.proxy_route import get_proxy_config
+
+
+
 redis_host = os.environ.get("REDIS_HOST", "redis")
 redis_port = os.environ.get("REDIS_PORT", 6379)
 redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
@@ -102,6 +106,8 @@ async def track_backend_yt_dlp_search(query: str, offset: int, limit: int, proxy
         redis_client.set(track["id"], track["url"], 3600)
     return deserialized_search_results[offset:offset+limit]
   
+
+  
 # async def update_direct_links(track):
 #     options = {
 #         "quiet": True,
@@ -117,29 +123,46 @@ async def track_backend_yt_dlp_search(query: str, offset: int, limit: int, proxy
 #     print("set qilindi")
 
 async def update_direct_links(video_id: str):
-    video_url = f"https://www.youtube.com/watch?v={video_id}"
-    cmd = [
-        "yt-dlp",
-        "--simulate",
-        "--skip-download",
-        "-j",
-        "-f",
-        "bestaudio[ext=m4a]",
-        "--match-filter", "duration>50 & duration<600",
-        video_url
-    ]
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.DEVNULL
-    )
-    stdout, _ = await proc.communicate()
-    if stdout:
-        data = json.loads(stdout.decode())
-        url = data.get("url")
-        redis_client.set(video_id, url, 3600)
-        print("✅ Set qilindi:", url)
+    try:
+        video_url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        proxy_config = await get_proxy_config()
+        proxy = None
+        if proxy_config:
+            proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+        
+        cmd = [
+            "yt-dlp",
+            "--simulate",
+            "--skip-download",
+            "-j",
+            "-f", "bestaudio[ext=m4a]",
+            "--match-filter", "duration>50 & duration<600",
+        ]
 
+        if proxy:
+            cmd += ["--proxy", proxy]
+
+        cmd.append(video_url)
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+
+        if proc.returncode != 0:
+            print(f"❌ Error [{video_id}]:", stderr.decode())
+            return
+
+        if stdout:
+            data = json.loads(stdout.decode())
+            url = data.get("url")
+            redis_client.set(video_id, url, 3600)
+            print("✅ Set qilindi:", url)
+    except Exception as e:
+        print(f"❌ Exception in update_direct_links: {e}")
 
 
 # import time
