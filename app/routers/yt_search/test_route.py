@@ -45,60 +45,18 @@ async def gather_to_forcee(results, batch_size=10):
         await asyncio.gather(*tasks)
 
 
-# @test_route.get("/youtube/", include_in_schema=False)
-# async def get_stream_(id: str):
-#     print(id, "id")
-#     value = redis_client.get(id)
-#     print(value, "value")
-#     if not value:
-#         raise HTTPException(status_code=500, detail="Internal server error1")
-#     url = value.decode("utf-8")
-#     async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
-#         try:
-#             head_resp = await head_client.head(url)
-#             head_resp.raise_for_status() 
-#             content_type = head_resp.headers.get("Content-Type", "application/octet-stream")
-#         except httpx.HTTPStatusError as e:
-#             print(f"Status: {e.response.status_code} - Cannot access file")
-#             raise HTTPException(status_code=404, detail="Cannot access file")
-#         except httpx.RequestError as e:
-#             print(f"Request Error: {e}")
-#             raise HTTPException(status_code=500, detail="Internal server error")
-
-#     async def iterfile():
-#         async with httpx.AsyncClient(follow_redirects=True, timeout=None) as stream_client:
-#             async with stream_client.stream("GET", url) as response:
-#                 if response.status_code != 200:
-#                     print("Status: Cannot stream file")
-#                     raise HTTPException(status_code=404, detail="Cannot stream file")
-
-#                 async for chunk in response.aiter_bytes():
-#                     yield chunk
-
-#     return StreamingResponse(
-#         iterfile(),
-#         media_type=content_type,
-#         headers={
-#             "Content-Disposition": f'inline; filename="ziyotech"',
-#         }
-#     )
-
-
 @test_route.get("/youtube/", include_in_schema=False)
 async def get_stream_(id: str):
     print(id, "id")
     value = redis_client.get(id)
     print(value, "value")
-    
     if not value:
         raise HTTPException(status_code=500, detail="Internal server error1")
-    
     url = value.decode("utf-8")
-    
     async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
         try:
             head_resp = await head_client.head(url)
-            head_resp.raise_for_status()
+            head_resp.raise_for_status() 
             content_type = head_resp.headers.get("Content-Type", "application/octet-stream")
         except httpx.HTTPStatusError as e:
             print(f"Status: {e.response.status_code} - Cannot access file")
@@ -121,6 +79,6 @@ async def get_stream_(id: str):
         iterfile(),
         media_type=content_type,
         headers={
-            "Content-Disposition": 'attachment; filename="ziyotech.mp4"',  # Faylni brauzerga yuklab olish uchun
+            "Content-Disposition": f'inline; filename="ziyotech"',
         }
     )
