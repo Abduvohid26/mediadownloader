@@ -39,7 +39,7 @@ async def get_shazam_data(
         return {"error": "Ma'lumotni aniqlab bo'lmadi"}
 
     # data["url"] = f"http://localhost:8080/shazam?id={data['id']}"
-    data["url"] = f"https://fast.videoyukla.uz/shazam?id={data['id']}"
+    data["url"] = f"https://videoyukla.uz/shazam?id={data['id']}"
 
     background_tasks.add_task(get_direct_audio_link, data)
     return data
