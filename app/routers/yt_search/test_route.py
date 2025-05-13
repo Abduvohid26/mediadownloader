@@ -7,7 +7,7 @@ from .test import redis_client
 import httpx
 from fastapi.responses import StreamingResponse
 from fastapi import BackgroundTasks
-
+from routers.proxy_route import get_proxy_config
 
 
 
@@ -50,10 +50,15 @@ async def get_stream_(id: str):
     print(id, "id")
     value = redis_client.get(id)
     print(value, "value")
+    proxy_config = await get_proxy_config()
+    if proxy_config:
+        proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+
+
     if not value:
         raise HTTPException(status_code=500, detail="Internal server error1")
     url = value.decode("utf-8")
-    async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=None, proxy=proxy) as head_client:
         try:
             head_resp = await head_client.head(url)
             head_resp.raise_for_status() 
@@ -66,7 +71,7 @@ async def get_stream_(id: str):
             raise HTTPException(status_code=500, detail="Internal server error")
 
     async def iterfile():
-        async with httpx.AsyncClient(follow_redirects=True, timeout=None) as stream_client:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=None, proxy=proxy) as stream_client:
             async with stream_client.stream("GET", url) as response:
                 if response.status_code != 200:
                     print("Status: Cannot stream file")
