@@ -83,8 +83,8 @@ def _track_search_deserialize(track):
     "performer": track["channel"],
     "duration": track["duration"] if "duration" in track and track["duration"] else 0,
     "thumbnail_url": track["thumbnails"][0]["url"],
-    "url": f"https://fast.videoyukla.uz/youtube?id={track['id']}"
-    # "url": f"http://localhost:8000/youtube?id={track['id']}"
+    # "url": f"https://fast.videoyukla.uz/youtube?id={track['id']}"
+    "url": f"http://localhost:8000/youtube?id={track['id']}"
 
   }
 
@@ -138,8 +138,7 @@ async def update_direct_links(video_id: str):
         data = json.loads(stdout.decode())
         url = data.get("url")
         redis_client.set(video_id, url, 3600)
-        print("set qilindi", url)
-        
+        print("✅ Set qilindi:", url)
 
 
 

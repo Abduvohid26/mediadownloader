@@ -14,27 +14,30 @@ from fastapi import BackgroundTasks
 test_route = APIRouter()
 
 @test_route.get("/youtube/music/search/")
-async def get_direct_links_route(query: str, background_tasks: BackgroundTasks, limit: int = 10):
+async def get_direct_links_route(query: str, limit: int = 10):
     start = time.time()
     results = await track_backend_yt_dlp_search(query, 0, limit)
     print("✅ Qidiruv bajardi in", round(time.time() - start, 2), "seconds")
 
-    # background_tasks ga to'g'ridan-to'g'ri funksiyani berish
-    background_tasks.add_task(gather_to_forcee, results)
+    # gather_to_forcee fon rejimida ishga tushadi
+    asyncio.create_task(gather_to_forcee(results))
 
     return results
+
+
+
 async def gather_to_forcee(results, batch_size=10):
     # Natijalarni ikkiga bo'lamiz
     half = len(results) // 2
     first_half = results[:half]
     second_half = results[half:]
-    
+
     # Birinchi yarmini batchlar bilan ishlaymiz
     for i in range(0, len(first_half), batch_size):
         batch = first_half[i:i + batch_size]
         tasks = [update_direct_links(track["id"]) for track in batch if track.get("id")]
         await asyncio.gather(*tasks)
-    
+
     # Ikkinchi yarmini batchlar bilan ishlaymiz
     for i in range(0, len(second_half), batch_size):
         batch = second_half[i:i + batch_size]
