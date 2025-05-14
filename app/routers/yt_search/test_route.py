@@ -47,6 +47,7 @@ async def gather_to_forcee(results, batch_size=10):
 
 @test_route.get("/youtube/", include_in_schema=False)
 async def get_stream_(id: str):
+    proxy = None
     print(id, "id")
     value = redis_client.get(id)
     print(value, "value")
@@ -84,6 +85,6 @@ async def get_stream_(id: str):
         iterfile(),
         media_type=content_type,
         headers={
-            "Content-Disposition": f'inline; filename="ziyotech"',
+            "Content-Disposition": f'inline; filename="ziyotech.mp3"',
         }
     )
