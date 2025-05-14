@@ -29,10 +29,29 @@ from routers.face_route import face
 from routers.yt_search.search_route import search_youtube
 from routers.yt_search.test_route import test_route
 from routers.shazam_.shazam_route import shazam_router
+from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import httpx
 
 app = FastAPI()
+
+
+origins = [
+    "http://localhost:3000",   # agar React localda bo‘lsa
+    "http://127.0.0.1:3000",   # bu ham kerak bo‘lishi mumkin
+    "http://localhost:8000",   # agar React localda bo‘lsa
+    "https://frontend.example.com",  # agar deploy qilingan bo‘lsa
+]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          # yoki ['*'] barcha manzillar uchun
+    allow_credentials=True,
+    allow_methods=["*"],            # GET, POST, PUT, DELETE hammasi
+    allow_headers=["*"],           
+)
+
 app.state.restart_lock = asyncio.Lock()
 # app.include_router(checker_router)
 app.include_router(test_route)

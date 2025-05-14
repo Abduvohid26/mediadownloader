@@ -57,7 +57,7 @@ import redis
 import os
 import asyncio
 import json
-from routers.proxy_route import get_proxy_config
+from routers.proxy_route import get_proxy_config, proxy_off
 
 
 
@@ -123,46 +123,60 @@ async def track_backend_yt_dlp_search(query: str, offset: int, limit: int, proxy
 #     print("set qilindi")
 
 async def update_direct_links(video_id: str):
-    try:
-        video_url = f"https://www.youtube.com/watch?v={video_id}"
-        
-        proxy_config = await get_proxy_config()
-        proxy = None
-        if proxy_config:
-            proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-        
-        cmd = [
-            "yt-dlp",
-            "--simulate",
-            "--skip-download",
-            "-j",
-            "-f", "bestaudio[ext=m4a]",
-            "--match-filter", "duration>50 & duration<600",
-        ]
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
 
-        if proxy:
-            cmd += ["--proxy", proxy]
+    for attempt in range(3):
+        try:
+            proxy_config = await get_proxy_config()
+            proxy = None
+            if proxy_config:
+                proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
 
-        cmd.append(video_url)
+            cmd = [
+                "yt-dlp",
+                "--simulate",
+                "--skip-download",
+                "-j",
+                "-f", "bestaudio[ext=m4a]",
+                "--match-filter", "duration>50 & duration<600",
+            ]
+            if proxy:
+                cmd += ["--proxy", proxy]
+            cmd.append(video_url)
 
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await proc.communicate()
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await proc.communicate()
 
-        if proc.returncode != 0:
-            print(f"❌ Error [{video_id}]:", stderr.decode())
-            return
+            if proc.returncode == 0 and stdout:
+                data = json.loads(stdout.decode())
+                url = data.get("url")
+                if url:
+                    redis_client.set(video_id, url, 3600)
+                    print("✅ Set qilindi:", url)
+                    return
+            else:
+                error_msg = stderr.decode()
+                print(f"❌ Error [{attempt+1}/3] [{video_id}]: {error_msg.strip()}")
 
-        if stdout:
-            data = json.loads(stdout.decode())
-            url = data.get("url")
-            redis_client.set(video_id, url, 3600)
-            print("✅ Set qilindi:", url)
-    except Exception as e:
-        print(f"❌ Exception in update_direct_links: {e}")
+                if proxy_config and any(msg in error_msg for msg in [
+                    "Sign in to confirm you're not a bot",
+                    "blocked it in your country",
+                    "This video is unavailable",
+                    "ProxyError",
+                    "403", "HTTP Error"
+                ]):
+                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+
+        except Exception as e:
+            print(f"❌ Exception attempt [{attempt+1}] in update_direct_links: {e}")
+
+    print(f"❌ Failed to get direct link for video [{video_id}] after 3 attempts.")
+    return {"success": False, "message": "Error response from the server", "retries": 3}
+
 
 
 # import time
