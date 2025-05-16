@@ -4,8 +4,8 @@ RUN addgroup --system abduvohid && adduser --system --group abduvohid
 # Ishchi katalogni sozlash
 WORKDIR /media_service
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# ENV PYTHONDONTWRITEBYTECODE 1
+# ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-utils \
