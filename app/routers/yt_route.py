@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.encoders import jsonable_encoder
 from schema.schema import YtSchema
-from .youtube import get_yt_data, get_youtube_video_info
+from .youtube import get_yt_data
 yt_router = APIRouter()
 
 @yt_router.get("/youtube/media/")
@@ -29,17 +29,17 @@ async def yt_media_service(yt_url: YtSchema = Form(...)):
 
 
 # @yt_router.get("/youtube/test/")
-async def get_media(url: str):
-    try:
-        data = await get_youtube_video_info(url)
-        # print(data, "data")
-        if not data:
-            return {"status": "error", "message": "Invalid response from the server."}
-        return data
+# async def get_media(url: str):
+#     try:
+#         data = await get_youtube_video_info(url)
+#         # print(data, "data")
+#         if not data:
+#             return {"status": "error", "message": "Invalid response from the server."}
+#         return data
 
-    except Exception as e:
-        print(f"Xatolik Yuz Berdi: {e}")
-        return {"status": "error", "message": f"Invalid response from the server. {e}"}
+#     except Exception as e:
+#         print(f"Xatolik Yuz Berdi: {e}")
+#         return {"status": "error", "message": f"Invalid response from the server. {e}"}
 
 
 
