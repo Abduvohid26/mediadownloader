@@ -121,12 +121,15 @@ async def search(query: str, max_results: int = 10):
     print(f"⏱️ Finished in: {duration} seconds")
     
     results = []
-    for idx, audio_url in enumerate(audio_links):
-        # faqat audio_url mavjud va xato bo'lmasa, natijaga qo'shamiz
-        if not isinstance(audio_url, Exception) and audio_url is not None:
+    for idx, audio_data in enumerate(audio_links):
+        if (
+            not isinstance(audio_data, Exception)
+            and audio_data is not None
+            and audio_data.get("download_url") is not None
+        ):
             results.append({
                 "title": search_results[idx]["title"],
-                "audio_url": audio_url
+                "audio_url": audio_data["download_url"]
             })
     
     return results
