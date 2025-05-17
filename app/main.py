@@ -26,8 +26,8 @@ from routers.cashe import generate_unique_id
 from fastapi.responses import StreamingResponse
 # from routers.new_inta import checker_router
 from routers.face_route import face
-from routers.yt_search.search_route import search_youtube
 from routers.yt_search.test_route import test_route
+from routers.yt_search.search_route import search_youtube
 from routers.shazam_.shazam_route import shazam_router
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
@@ -63,9 +63,9 @@ app.include_router(check_url)
 app.include_router(tk_router)
 app.include_router(face)
 app.include_router(shazam_router)
-# app.include_router(search_youtube)
+app.include_router(search_youtube)
 
-MAX_PAGES = 5
+MAX_PAGES = 2
 
 
 # DB sessiyasini olish
