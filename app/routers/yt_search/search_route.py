@@ -112,24 +112,21 @@ async def get_audio_url_manage(video_url: str):
 @search_youtube.get("/new/search/")
 async def search(query: str, max_results: int = 10):
     start_time = time.time()
-    # qidiruvni bajarish
+    
     search_results = await search_youtube_(f"{query} music", max_results)
-    print(search_results, "Results")
-    
-    # audio linklarni olish uchun vazifalar ro'yxati
     tasks = [get_audio_url_manage(item["url"]) for item in search_results]
-    
     audio_links = await asyncio.gather(*tasks, return_exceptions=True)
     
     duration = round(time.time() - start_time, 2)
     print(f"⏱️ Finished in: {duration} seconds")
     
-    # natijalarni tekshirish va xatolarni ajratish (ixtiyoriy)
     results = []
-    for idx, result in enumerate(audio_links):
-        if isinstance(result, Exception):
-            results.append({"url": search_results[idx]["url"], "error": str(result)})
-        else:
-            results.append({"url": search_results[idx]["url"], "audio_link": result})
+    for idx, audio_url in enumerate(audio_links):
+        # faqat audio_url mavjud va xato bo'lmasa, natijaga qo'shamiz
+        if not isinstance(audio_url, Exception) and audio_url is not None:
+            results.append({
+                "title": search_results[idx]["title"],
+                "audio_url": audio_url
+            })
     
     return results
