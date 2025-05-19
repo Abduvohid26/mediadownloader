@@ -1,7 +1,7 @@
 import aiohttp
 import asyncio
 
-fetch_api = "http://localhost:8000/tiktok/media/service/"
+fetch_api = "https://videoyukla.uz/tiktok/media/service/"
 
 # video_urls = [
 #     f"https://www.tiktok.com/@user/video/{1000000000 + i}"
@@ -22,7 +22,7 @@ async def fetch(session, idx, url):
 async def main():
     async with aiohttp.ClientSession() as session:
         tasks = [
-            fetch(session, i + 1, url) for i in range(4)
+            fetch(session, i + 1, url) for i in range(10)
         ]
 
         for coro in asyncio.as_completed(tasks):
