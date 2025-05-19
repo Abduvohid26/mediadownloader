@@ -31,5 +31,5 @@ async def main():
             print(f"📦 Response: {data}...")  # faqat 300 ta belgigacha
 
 # 3. Ishga tushirish
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())
