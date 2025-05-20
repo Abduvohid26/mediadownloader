@@ -46,7 +46,7 @@ async def get_db() -> AsyncSession:
 #         await db.commit()
     
 #     return {"status": "ok"}
-
+import re
 @proxies.post("/proxy/file/add/", include_in_schema=False)
 async def get_file_and_create(file: UploadFile, db: AsyncSession = Depends(get_db)):
     content = await file.read()
