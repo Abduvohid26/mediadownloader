@@ -103,9 +103,12 @@ async def get_instagram_direct_links(post_url: str, db, request):
 
 
         post_type = medias[0]["type"] if len(medias) == 1 else "album"
+        match = re.search(r'/(?:p|reel|tv)/([A-Za-z0-9_-]+)', post_url)
+        shortcode = match.group(1) if match else "unknown"
 
         return {
             "error": False,
+            "shortcode": shortcode,
             "hosting": "instagram",
             "type": post_type,
             "url": post_url,
