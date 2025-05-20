@@ -72,7 +72,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
                     media_id = await generate_unique_id()
                     redis_client.set(media_id, video_link, ex=3600)
 
-                    download_url = f"https://fast.videoyukla.uz/download/instagram?id={media_id}"
+                    download_url = f"https://videoyukla.uz/download/instagram?id={media_id}"
                     # download_url = f"https://localhost:8000/download/instagram?id={media_id}"
 
 
@@ -86,7 +86,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
                             thumb_link = await thumb_el.get_attribute("src")
                             thumb_id = await generate_unique_id()
                             redis_client.set(thumb_id, thumb_link, ex=3600)
-                            thumb = f"https://fast.videoyukla.uz/download/instagram?id={thumb_id}"
+                            thumb = f"https://videoyukla.uz/download/instagram?id={thumb_id}"
                             # thumb = f"https://localhost:8000/download/instagram?id={thumb_id}"
 
                         else:
@@ -183,7 +183,7 @@ async def get_instagram_direct_links_extra(post_url: str, db, request):
                     media_id = await generate_unique_id()
                     redis_client.set(media_id, video_link, ex=3600)
 
-                    download_url = f"https://fast.videoyukla.uz/download/instagram?id={media_id}"
+                    download_url = f"https://videoyukla.uz/download/instagram?id={media_id}"
                     # download_url = f"https://localhost:8000/download/instagram?id={media_id}"
 
                     if video_link.endswith((".webp", ".jpg", ".jpeg", ".png")):
@@ -196,7 +196,7 @@ async def get_instagram_direct_links_extra(post_url: str, db, request):
                             thumb_link = await thumb_el.get_attribute("src")
                             thumb_id = await generate_unique_id()
                             redis_client.set(thumb_id, thumb_link, ex=3600)
-                            thumb = f"https://fast.videoyukla.uz/download/instagram?id={thumb_id}"
+                            thumb = f"https://videoyukla.uz/download/instagram?id={thumb_id}"
                             # thumb = f"https://localhost:8000/download/instagram?id={thumb_id}"
 
 
