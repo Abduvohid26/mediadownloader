@@ -72,7 +72,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
                     media_id = await generate_unique_id()
                     redis_client.set(media_id, video_link, ex=3600)
 
-                     download_url = f"https://fast.videoyukla.uz/download/instagram?id={media_id}"
+                    download_url = f"https://fast.videoyukla.uz/download/instagram?id={media_id}"
                     # download_url = f"https://localhost:8000/download/instagram?id={media_id}"
 
 
@@ -290,9 +290,9 @@ async def download_instagram_media(url, proxy_config, db, request):
                         'quiet': True,
                         'extract_flat': False,
                     }
-                    if proxy_config:
-                        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-                        options['proxy'] = proxy_url
+                    # if proxy_config:
+                    #     proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+                    #     options['proxy'] = proxy_url
                     with yt_dlp.YoutubeDL(options) as ydl:
                         return ydl.extract_info(url, download=False)
                 return await loop.run_in_executor(None, sync_extract)
