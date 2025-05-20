@@ -33,6 +33,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import httpx
 
+EMAIL_FACEBOOK = "abduvohidabdujalilov92@gmail.com"
+EMAIL_PASSWORD = "20042629ab"
+
 app = FastAPI()
 
 
@@ -65,7 +68,7 @@ app.include_router(face)
 app.include_router(shazam_router)
 app.include_router(search_youtube)
 
-MAX_PAGES = 4
+MAX_PAGES = 1
 
 
 # DB sessiyasini olish
@@ -220,7 +223,8 @@ async def startup():
     app.state.page_pool3 = asyncio.Queue()
 
     # Dastlabki sahifalarni qo‘shish helper funksiyasi
-    async def add_initial_page(context, url: str, pool: asyncio.Queue, name: str):
+    async def add_initial_page(context, url: str, pool: asyncio.Queue, name: str, face_login: bool = False):
+        page = None
         try:
             page = await context.new_page()
             await page.goto(url, wait_until="load")
@@ -232,13 +236,34 @@ async def startup():
                 await page.close()
             except:
                 pass
+        finally:
+            if face_login:
+                    try:
+                        await page.goto("https://www.facebook.com")
+                        await page.wait_for_selector('input[name="email"]', timeout=5000)
+                        await page.fill('input[name="email"]', EMAIL_FACEBOOK)
+                        await page.fill('input[name="pass"]', EMAIL_PASSWORD)
+                        await page.click('button[name="login"]')
+
+                        # Login muvaffaqiyatli bo'lishini tekshirish
+                        await page.wait_for_timeout(3000)
+                        if "login" in page.url:
+                            print("❌ Login failed, check credentials.")
+                            return False
+                        print("✅ Facebook login successful.")
+                        return True
+                    except Exception as e:
+                        print("❌ Login error:", e)
+                        return False
+
+
 
     # Sahifalarni yaratish
     # Sahifalarni yaratish
     await add_initial_page(context_noproxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
     await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
     # await add_initial_page(context_proxy, "https://tiktokio.com", app.state.page_pool2, "Snaptik")
-    await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook")
+    await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook", face_login=True)
 
 
     # Page pool tasklari
@@ -443,6 +468,21 @@ async def restart_browser_loop_generic(
                     except Exception as e:
                         print(f"⚠️ {url} ochilmadi: {e}")
 
+                    finally:
+                        try:
+                            await page.goto("https://www.facebook.com")
+                            await page.wait_for_selector('input[name="email"]', timeout=5000)
+                            await page.fill('input[name="email"]', EMAIL_FACEBOOK)
+                            await page.fill('input[name="pass"]', EMAIL_PASSWORD)
+                            await page.click('button[name="login"]')
+
+                            # Login muvaffaqiyatli bo'lishini tekshirish
+                            await page.wait_for_timeout(3000)
+                            if "login" in page.url:
+                                print("❌ Login failed, check credentials.")
+                            print("✅ Facebook login successful.")
+                        except Exception as e:
+                            print("❌ Login error:", e)
                 # 6. Yangi taskni ishga tushirish
                 setattr(app.state, add_task_key, asyncio.create_task(
                     add_page_func(new_context, new_page_pool, app)
