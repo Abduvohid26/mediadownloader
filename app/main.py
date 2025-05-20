@@ -237,29 +237,30 @@ async def startup():
             except:
                 pass
         finally:
-            if face_login:
-                try:
-                    await page.goto("https://facebook.com")
+            pass
+            # if face_login:
+            #     try:
+            #         await page.goto("https://facebook.com")
                     
-                    # Email input mavjudligini tekshir
-                    email_input = await page.query_selector('input[name="email"]')
-                    password_input = await page.query_selector('input[name="pass"]')
+            #         # Email input mavjudligini tekshir
+            #         email_input = await page.query_selector('input[name="email"]')
+            #         password_input = await page.query_selector('input[name="pass"]')
 
-                    if email_input and password_input:
-                        await email_input.fill(EMAIL_FACEBOOK)
-                        await password_input.fill(EMAIL_PASSWORD)
-                        await page.click('button[name="login"]')
+            #         if email_input and password_input:
+            #             await email_input.fill(EMAIL_FACEBOOK)
+            #             await password_input.fill(EMAIL_PASSWORD)
+            #             await page.click('button[name="login"]')
 
-                        # Login muvaffaqiyatli bo'lishini tekshirish
-                        await page.wait_for_timeout(3000)
-                        if "login" in page.url:
-                            print("❌ Login failed, check credentials.")
-                        print("✅ Facebook login successful.")
-                    else:
-                        print("❌ Login form not found.")
+            #             # Login muvaffaqiyatli bo'lishini tekshirish
+            #             await page.wait_for_timeout(3000)
+            #             if "login" in page.url:
+            #                 print("❌ Login failed, check credentials.")
+            #             print("✅ Facebook login successful.")
+            #         else:
+            #             print("❌ Login form not found.")
 
-                except Exception as e:
-                    print("❌ Login error:", e)
+            #     except Exception as e:
+            #         print("❌ Login error:", e)
 
 
     # Sahifalarni yaratish
@@ -473,27 +474,28 @@ async def restart_browser_loop_generic(
                         print(f"⚠️ {url} ochilmadi: {e}")
 
                     finally:
-                        try:
-                            await page.goto("https://facebook.com")
+                        pass
+                        # try:
+                        #     await page.goto("https://facebook.com")
                             
-                            # Email input mavjudligini tekshir
-                            email_input = await page.query_selector('input[name="email"]')
-                            password_input = await page.query_selector('input[name="pass"]')
+                        #     # Email input mavjudligini tekshir
+                        #     email_input = await page.query_selector('input[name="email"]')
+                        #     password_input = await page.query_selector('input[name="pass"]')
 
-                            if email_input and password_input:
-                                await email_input.fill(EMAIL_FACEBOOK)
-                                await password_input.fill(EMAIL_PASSWORD)
-                                await page.click('button[name="login"]')
+                        #     if email_input and password_input:
+                        #         await email_input.fill(EMAIL_FACEBOOK)
+                        #         await password_input.fill(EMAIL_PASSWORD)
+                        #         await page.click('button[name="login"]')
 
-                                # Login muvaffaqiyatli bo'lishini tekshirish
-                                await page.wait_for_timeout(3000)
-                                if "login" in page.url:
-                                    print("❌ Login failed, check credentials.")
-                                print("✅ Facebook login successful.")
-                            else:
-                                print("❌ Login form not found.")
-                        except Exception as e:
-                            print("❌ Login error:", e)
+                        #         # Login muvaffaqiyatli bo'lishini tekshirish
+                        #         await page.wait_for_timeout(3000)
+                        #         if "login" in page.url:
+                        #             print("❌ Login failed, check credentials.")
+                        #         print("✅ Facebook login successful.")
+                        #     else:
+                        #         print("❌ Login form not found.")
+                        # except Exception as e:
+                        #     print("❌ Login error:", e)
                 # 6. Yangi taskni ishga tushirish
                 setattr(app.state, add_task_key, asyncio.create_task(
                     add_page_func(new_context, new_page_pool, app)
