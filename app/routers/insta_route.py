@@ -1,12 +1,16 @@
 from .insta import download_instagram_media, get_instagram_direct_links
 from schema.schema import InstaSchema, InstaStory
 from fastapi import APIRouter, HTTPException, Form, Depends, Request
+from fastapi.responses import StreamingResponse
 # from .tiktok import get_video_album
 from .proxy_route import get_db, get_proxy_config
 from sqlalchemy.ext.asyncio import AsyncSession
 from .cashe import generate_unique_id
 from models.user import Download
 import re
+import httpx
+from .cashe import redis_client
+from urllib.parse import urlparse
 
 insta_router = APIRouter()
 
@@ -55,68 +59,48 @@ async def get_media(request: Request, url: InstaSchema = Form(...), db : AsyncSe
 
 
 
-# @insta_router.post("/instagram/check")
-async def get_instagram_direct_links_route(post_url: str, request: Request):
-    """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
-    # page_pool = request.app.state.page_pool
-    # page = await page_pool.get()
-    context = request.app.state.context_noproxy
-    page = await context.new_page()
-    print(page, "PAGE")
+@insta_router.get("/download/instagram/", include_in_schema=False)
+async def download_file(id: str):
+    # Redis'dan URL ni olish
+    _dataurl = redis_client.get(id)
+    url = _dataurl.decode("utf-8")
+    print(url, "url")
+    if not url:
+        raise HTTPException(status_code=404, detail="Link not found or expired")
 
-    try:
-        await page.goto("https://sssinstagram.com/ru/story-saver")
-        await page.fill(".form__input", post_url)
-        await page.click(".form__submit")
+    # Protokol qo'shish agar kerak bo‘lsa
+    if not url.startswith(('http://', 'https://')):
+        url = 'http://' + url
 
-        # Yuklab olish tugmasi chiqquncha kutish
-        await page.wait_for_selector(".button__download", state="attached", timeout=10000)
-        # Storylar uchun yuklab olish linklari
-        story_elements = await page.locator(".button__download").all()
-        story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
+    # URL validatsiyasi
+    parsed_url = urlparse(url)
+    if not parsed_url.netloc:
+        raise HTTPException(status_code=400, detail="Invalid URL: missing domain")
 
-        # Har bir media uchun thumbnail (prevyu rasm)
-        thumbnail_elements = await page.locator(".media-content__image").all()
-        thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
-        
+    # HEAD so‘rov yuborish
+    async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
+        try:
+            head_resp = await head_client.head(url)
+            head_resp.raise_for_status()
+            content_type = head_resp.headers.get("Content-Type", "application/octet-stream")
+        except httpx.HTTPStatusError:
+            raise HTTPException(status_code=404, detail="Cannot access file")
+        except httpx.RequestError:
+            raise HTTPException(status_code=500, detail="Internal server error")
 
-        # Sarlavha olish
-        title_elements = await page.locator(".output-list__caption p").all()
-        titles = [await el.text_content() for el in title_elements]
-        title = titles[0] if titles else None
+    # Faylni stream qilish
+    async def iterfile():
+        async with httpx.AsyncClient(follow_redirects=True, timeout=None) as stream_client:
+            async with stream_client.stream("GET", url) as response:
+                if response.status_code != 200:
+                    raise HTTPException(status_code=404, detail="Cannot stream file")
+                async for chunk in response.aiter_bytes():
+                    yield chunk
 
-        # Shortcode ajratish (ixtiyoriy, agar URLdan topilsa)
-        match = re.search(r'/p/([^/]+)/', post_url)
-        shortcode = match.group(1) if match else "unknown"
-
-        if not story_links:
-            return {"error": True, "message": "Hech qanday media topilmadi."}
-
-        # Media turini aniqlash
-        def detect_type(url: str):
-            return "image" if url.lower().endswith(".jpg") else "video"
-
-        # Media elementlarini to'plash (thumbnail bilan)
-        medias = []
-        for idx, url in enumerate(story_links):
-            medias.append({
-                "type": detect_type(url),
-                "download_url": url,
-                "thumb": thumbnails[idx] if idx < len(thumbnails) else None
-            })
-
-        return {
-            "error": False,
-            "shortcode": shortcode,
-            "hosting": "instagram",
-            "type": "album" if len(story_links) > 1 else detect_type(story_links[0]),
-            "url": post_url,
-            "title": title,
-            "medias": medias,
+    return StreamingResponse(
+        iterfile(),
+        media_type=content_type,
+        headers={
+            "Content-Disposition": f'inline; filename="media"',
         }
-
-    except Exception as e:
-        print(f"Xatolik yuz berdi: {e}")
-        return {"error": True, "message": "Serverdan noto‘g‘ri javob oldik."}
-
-    
+    )

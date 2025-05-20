@@ -12,6 +12,8 @@ from playwright.async_api import async_playwright
 from .cashe import generate_unique_id
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import Download
+from .cashe import redis_client
+
 
 class Example:
     pass
@@ -27,12 +29,9 @@ async def get_instagram_direct_links(post_url: str, db, request):
     """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
     click_info = request.app.state.click_info
     if click_info is True:
-        print({"success": True, "message": "Restart time bro"})
         return await get_instagram_direct_links_extra(post_url, db, request)
     page = None
-    # async with request.app.state.restart_lock:
     try:
-    # Sahifani navbatdan olish
         try:
             page = await asyncio.wait_for(request.app.state.page_pool.get(), timeout=10)
         except asyncio.TimeoutError:
@@ -44,7 +43,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
             try:
                 await page.click(".form__submit")
                 await page.wait_for_selector(".button__download", state="attached", timeout=7000)
-                break  # muvaffaqiyatli tugallangan bo'lsa, tsiklni to'xtatamiz
+                break  
             except Exception as e:
                 print(f"⚠️ 111111111111111111111111: {e}")
                 error_message1 = await page.query_selector(".error-message__text")
@@ -52,82 +51,68 @@ async def get_instagram_direct_links(post_url: str, db, request):
                     error_data = error_message1.text_content()
                     logger.info(f"Xato: {error_data}")
                     if "@имя" in error_message1:
-                        if attempt < max_retries - 1:  # ikkinchi urinishga o'tish
+                        if attempt < max_retries - 1:  
                             logger.info("Xatolik aniqlangan, URL qayta kiritilmoqda...")
-                            continue  # URL'ni qayta kiritish
+                            continue  
                         else:
                             print("Ikkinchi urinishdan so'ng xatolik mavjud.")
                             return {"error": True, "message": "Invalid response from the server"}
                     else:
                         pass
-                        # return {"error": True, "message": f"Xatolik: {str(e)}"}
-
-        # Yuklab olish linklari
-        story_elements = await page.locator(".button__download").all()
-        story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
-
-        # Thumbnail linklari
-        thumbnail_elements = await page.locator(".media-content__image").all()
-        thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
-        # logger.info(f"THUMBNAILS: {thumbnails}")
-
-        # Sarlavha (title)
         title_elements = await page.locator(".output-list__caption p").all()
         titles = [await el.text_content() for el in title_elements]
         title = titles[0] if titles else None
-
-        # Shortcode ajratish
-        match = re.search(r'/p/([^/]+)/', post_url)
-        shortcode = match.group(1) if match else "unknown"
-
-        if not story_links:
-            return {"error": True, "message": "Hech qanday media topilmadi."}
-
-        def detect_type(url: str):
-            return "image" if url.lower().endswith((".jpg", ".jpeg", ".png")) else "video"
-
-        # Medialar ro'yxati
         medias = []
+        videos = await page.query_selector_all(".button__download")
 
-        for idx, media_url in enumerate(story_links):
-            media_id = await generate_unique_id()
-            media_download = Download(id=media_id, original_url=media_url)
-            db.add(media_download)
+        if videos:
+            for video in videos:
+                video_link = await video.get_attribute("href")
+                if video_link:
+                    media_id = await generate_unique_id()
+                    redis_client.set(media_id, video_link, ex=3600)
 
-            media_download_url = f"https://fast.videoyukla.uz/download?id={media_id}"
+                     # download_url = f"https://fast.videoyukla.uz/download/instagram?id={media_id}"
+                    download_url = f"https://localhost:8000/download/instagram?id={media_id}"
 
-            thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
-            thumb_download_url = None
 
-            if thumb_url and thumb_url.startswith("http"):
-                thumb_id = await generate_unique_id()
-                thumb_download = Download(id=thumb_id, original_url=thumb_url)
-                db.add(thumb_download)
-                thumb_download_url = f"https://fast.videoyukla.uz/download?id={thumb_id}"
-            else:
-                thumb_download_url = media_download_url
+                    if video_link.endswith((".webp", ".jpg", ".jpeg", ".png")):
+                        media_type = "image"
+                        thumb = download_url  
+                    else:
+                        media_type = "video"
+                        thumb_el = await page.query_selector(".media-content__image")
+                        if thumb_el:
+                            thumb_link = await thumb_el.get_attribute("src")
+                            thumb_id = await generate_unique_id()
+                            redis_client.set(thumb_id, thumb_link, ex=3600)
+                            # thumb = f"https://fast.videoyukla.uz/download/instagram?id={thumb_id}"
+                            thumb = f"https://localhost:8000/download/instagram?id={thumb_id}"
 
-            # Agar type image bo‘lsa thumbnail va media url bir xil bo‘ladi
-            if detect_type(media_url) == "image":
-                thumb_download_url = media_download_url
+                        else:
+                            thumb = None
 
-            medias.append({
-                "type": detect_type(media_url),
-                "download_url": media_download_url,
-                "thumb": thumb_download_url
-            })
+                    medias.append({
+                        "type": media_type,
+                        "download_url": download_url,
+                        "thumb": thumb
+                    })
+        if not medias:
+            print({"error": True, "message": "hech qanday media topilmadi"})
+            return {"error": True, "message": "Invalid response from the server."}
 
-        await db.commit()
+
+        post_type = medias[0]["type"] if len(medias) == 1 else "album"
 
         return {
             "error": False,
-            "shortcode": shortcode,
             "hosting": "instagram",
-            "type": "album" if len(medias) > 1 else detect_type(story_links[0]),
+            "type": post_type,
             "url": post_url,
             "title": title,
             "medias": medias,
         }
+
 
     except Exception as e:
         logger.error(f"Xatolik yuz berdi: {e}")
@@ -154,9 +139,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
 async def get_instagram_direct_links_extra(post_url: str, db, request):
     """Instagram hikoyalarini yuklab olish va linklarni saqlash funksiyasi."""
     page = None
-    # async with request.app.state.restart_lock:
     try:
-    # Sahifani navbatdan olish
         try:
             context = request.app.state.extra_context
             page = await context.new_page()
@@ -165,13 +148,13 @@ async def get_instagram_direct_links_extra(post_url: str, db, request):
             print(f"Xatolik yuzb berdi: {e}")
             return {"error": True, "message": "Error response from the server."}
 
-        max_retries = 2  # maksimal urinishlar soni
+        max_retries = 2  
         for attempt in range(max_retries):
             await page.fill(".form__input", post_url)
             try:
                 await page.click(".form__submit")
                 await page.wait_for_selector(".button__download", state="attached", timeout=7000)
-                break  # muvaffaqiyatli tugallangan bo'lsa, tsiklni to'xtatamiz
+                break 
             except Exception as e:
                 print(f"⚠️ 111111111111111111111111: {e}")
                 error_message1 = await page.query_selector(".error-message__text")
@@ -179,82 +162,67 @@ async def get_instagram_direct_links_extra(post_url: str, db, request):
                     error_data = error_message1.text_content()
                     logger.info(f"Xato: {error_data}")
                     if "@имя" in error_message1:
-                        if attempt < max_retries - 1:  # ikkinchi urinishga o'tish
+                        if attempt < max_retries - 1: 
                             logger.info("Xatolik aniqlangan, URL qayta kiritilmoqda...")
-                            continue  # URL'ni qayta kiritish
+                            continue  
                         else:
                             print("Ikkinchi urinishdan so'ng xatolik mavjud.")
                             return {"error": True, "message": "Invalid response from the server"}
                     else:
                         pass
-                        # return {"error": True, "message": f"Xatolik: {str(e)}"}
-
-        # Yuklab olish linklari
-        story_elements = await page.locator(".button__download").all()
-        story_links = [await el.get_attribute("href") for el in story_elements if await el.get_attribute("href")]
-
-        # Thumbnail linklari
-        thumbnail_elements = await page.locator(".media-content__image").all()
-        thumbnails = [await el.get_attribute("src") for el in thumbnail_elements if await el.get_attribute("src")]
-        # logger.info(f"THUMBNAILS: {thumbnails}")
-
-        # Sarlavha (title)
         title_elements = await page.locator(".output-list__caption p").all()
         titles = [await el.text_content() for el in title_elements]
         title = titles[0] if titles else None
-
-        # Shortcode ajratish
-        match = re.search(r'/p/([^/]+)/', post_url)
-        shortcode = match.group(1) if match else "unknown"
-
-        if not story_links:
-            return {"error": True, "message": "Hech qanday media topilmadi."}
-
-        def detect_type(url: str):
-            return "image" if url.lower().endswith((".jpg", ".jpeg", ".png")) else "video"
-
-        # Medialar ro'yxati
         medias = []
+        videos = await page.query_selector_all(".button__download")
 
-        for idx, media_url in enumerate(story_links):
-            media_id = await generate_unique_id()
-            media_download = Download(id=media_id, original_url=media_url)
-            db.add(media_download)
+        if videos:
+            for video in videos:
+                video_link = await video.get_attribute("href")
+                if video_link:
+                    media_id = await generate_unique_id()
+                    redis_client.set(media_id, video_link, ex=3600)
 
-            media_download_url = f"https://fast.videoyukla.uz/download?id={media_id}"
+                    # download_url = f"https://fast.videoyukla.uz/download/instagram?id={media_id}"
+                    download_url = f"https://localhost:8000/download/instagram?id={media_id}"
 
-            thumb_url = thumbnails[idx] if idx < len(thumbnails) else None
-            thumb_download_url = None
+                    if video_link.endswith((".webp", ".jpg", ".jpeg", ".png")):
+                        media_type = "image"
+                        thumb = download_url  
+                    else:
+                        media_type = "video"
+                        thumb_el = await page.query_selector(".media-content__image")
+                        if thumb_el:
+                            thumb_link = await thumb_el.get_attribute("src")
+                            thumb_id = await generate_unique_id()
+                            redis_client.set(thumb_id, thumb_link, ex=3600)
+                            # thumb = f"https://fast.videoyukla.uz/download/instagram?id={thumb_id}"
+                            thumb = f"https://localhost:8000/download/instagram?id={thumb_id}"
 
-            if thumb_url and thumb_url.startswith("http"):
-                thumb_id = await generate_unique_id()
-                thumb_download = Download(id=thumb_id, original_url=thumb_url)
-                db.add(thumb_download)
-                thumb_download_url = f"https://fast.videoyukla.uz/download?id={thumb_id}"
-            else:
-                thumb_download_url = media_download_url
 
-            # Agar type image bo‘lsa thumbnail va media url bir xil bo‘ladi
-            if detect_type(media_url) == "image":
-                thumb_download_url = media_download_url
+                        else:
+                            thumb = None
 
-            medias.append({
-                "type": detect_type(media_url),
-                "download_url": media_download_url,
-                "thumb": thumb_download_url
-            })
+                    medias.append({
+                        "type": media_type,
+                        "download_url": download_url,
+                        "thumb": thumb
+                    })
+        if not medias:
+            print({"error": True, "message": "hech qanday media topilmadi"})
+            return {"error": True, "message": "Invalid response from the server."}
 
-        await db.commit()
+        post_type = medias[0]["type"] if len(medias) == 1 else "album"
 
         return {
             "error": False,
-            "shortcode": shortcode,
             "hosting": "instagram",
-            "type": "album" if len(medias) > 1 else detect_type(story_links[0]),
+            "type": post_type,
             "url": post_url,
             "title": title,
             "medias": medias,
         }
+
 
     except Exception as e:
         logger.error(f"Xatolik yuz berdi: {e}")
@@ -318,12 +286,13 @@ async def download_instagram_media(url, proxy_config, db, request):
         try:
             async def extract_info():
                 def sync_extract():
-                    proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
                     options = {
                         'quiet': True,
-                        # 'proxy': proxy_url,
                         'extract_flat': False,
                     }
+                    if proxy_config:
+                        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+                        options['proxy'] = proxy_url
                     with yt_dlp.YoutubeDL(options) as ydl:
                         return ydl.extract_info(url, download=False)
                 return await loop.run_in_executor(None, sync_extract)
@@ -380,6 +349,5 @@ async def download_instagram_media(url, proxy_config, db, request):
             print(traceback.format_exc())
             return {"error": True, "message": "Invalid response from the server"}
 
-    # Agar 3 martadan keyin ham muvaffaqiyatsiz bo'lsa
     return {"error": True, "message": "Failed to download media after retries", "details": str(last_exception)}
 
