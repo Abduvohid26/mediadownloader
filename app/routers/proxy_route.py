@@ -19,6 +19,34 @@ async def get_db() -> AsyncSession:
 
 
 
+# @proxies.post("/proxy/file/add/", include_in_schema=False)
+# async def get_file_and_create(file: UploadFile, db: AsyncSession = Depends(get_db)):
+#     content = await file.read()
+#     text_data = content.decode("utf-8")
+#     proxies_to_add = []
+    
+#     existing_proxies = await db.execute(select(ProxyServers.proxy))
+#     existing_proxies = {row[0] for row in existing_proxies.fetchall()}  
+    
+#     for data in text_data.split("\r"):
+#         curr = data.strip().split(":")
+#         if len(curr) < 4:
+#             continue  
+
+#         proxy = f"{curr[0]}:{curr[1]}"
+#         if proxy in existing_proxies:
+#             continue  
+
+#         proxies_to_add.append(
+#             ProxyServers(proxy=proxy, username=curr[2], password=curr[3])
+#         )
+
+#     if proxies_to_add:
+#         db.add_all(proxies_to_add)
+#         await db.commit()
+    
+#     return {"status": "ok"}
+
 @proxies.post("/proxy/file/add/", include_in_schema=False)
 async def get_file_and_create(file: UploadFile, db: AsyncSession = Depends(get_db)):
     content = await file.read()
@@ -28,17 +56,22 @@ async def get_file_and_create(file: UploadFile, db: AsyncSession = Depends(get_d
     existing_proxies = await db.execute(select(ProxyServers.proxy))
     existing_proxies = {row[0] for row in existing_proxies.fetchall()}  
     
-    for data in text_data.split("\r"):
-        curr = data.strip().split(":")
-        if len(curr) < 4:
-            continue  
+    # Regex pattern: http://username:password@ip:port
+    pattern = r"http://(.*?):(.*?)@(.*?):(\d+)"
+    
+    for line in text_data.splitlines():
+        match = re.match(pattern, line.strip())
+        if not match:
+            continue
+        
+        username, password, ip, port = match.groups()
+        proxy = f"{ip}:{port}"
 
-        proxy = f"{curr[0]}:{curr[1]}"
         if proxy in existing_proxies:
-            continue  
-
+            continue
+        
         proxies_to_add.append(
-            ProxyServers(proxy=proxy, username=curr[2], password=curr[3])
+            ProxyServers(proxy=proxy, username=username, password=password)
         )
 
     if proxies_to_add:
