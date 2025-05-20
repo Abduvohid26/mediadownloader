@@ -19,7 +19,7 @@ async def fetch(session, idx, url):
         return idx, "Error", str(e)
 
 # 2. Asosiy funksiya
-async def main():
+async def main():   
     async with aiohttp.ClientSession() as session:
         tasks = [
             fetch(session, i + 1, url) for i in range(10)
