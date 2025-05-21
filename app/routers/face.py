@@ -26,7 +26,7 @@ async def scrape_facebook_album_json(album_url: str, request):
         full_url = f"https://facebook.com/{path}"
         await page.evaluate(f"window.location.href = '{full_url}'")
         await page.wait_for_timeout(4000)
-
+        await page.screenshot(path="screenshot.png", full_page=True)
         medias = []
 
         # await page.wait_for_timeout(1000)

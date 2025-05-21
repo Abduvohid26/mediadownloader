@@ -89,6 +89,7 @@ async def generate_download(original_url: str, db: AsyncSession = Depends(get_db
     await db.commit()
     # return {"download_url": f"http://localhost:8000/download?id={file_id}"}
     return {"download_url": f"https://videoyukla.uz/download?id={file_id}"}
+
 import os
 @app.get("/get/image")
 async def get_image():
