@@ -61,6 +61,8 @@ async def scrape_facebook_album_json(album_url: str, request):
         #             "download_url": video_src,
         #             "thumb": thumb if thumb else video_src
         #         })
+        if not medias:
+            return {"error": True, "message": "Error response from the server."}
 
         result = {
             "error": False,
@@ -124,6 +126,10 @@ async def download_from_facebook_extra(album_url, request):
                     "download_url": src,
                     "thumb": src
                 })
+
+        if not medias:
+            return {"error": True, "message": "Error response from the server."}
+        
         result = {
             "error": False,
             "shortcode": "unknown",
