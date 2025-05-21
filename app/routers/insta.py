@@ -330,7 +330,7 @@ async def download_instagram_media(url, proxy_config, db, request):
             ]):
                 if proxy_config:
                     logging.info("Rotating proxy due to restriction...")
-                    await proxy_off(proxy_ip=proxy_config["server"], action="youtube")
+                    await proxy_off(proxy_ip=proxy_config["server"], action="instagram")
                 retry_count += 1
                 continue
             else:

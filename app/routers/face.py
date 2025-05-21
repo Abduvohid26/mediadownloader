@@ -26,7 +26,7 @@ async def scrape_facebook_album_json(album_url: str, request):
         full_url = f"https://facebook.com/{path}"
         await page.evaluate(f"window.location.href = '{full_url}'")
         await page.wait_for_timeout(4000)
-        await page.screenshot(path="screenshot.png", full_page=True)
+        # await page.screenshot(path="screenshot.png", full_page=True)
         medias = []
 
         # await page.wait_for_timeout(1000)
@@ -124,20 +124,6 @@ async def download_from_facebook_extra(album_url, request):
                     "download_url": src,
                     "thumb": src
                 })
-
-        # # 🎥 Videolar
-        # video_elements = await page.locator("div[role=article] video source[src*='fbcdn']").all()
-
-        # for video in video_elements:
-        #     video_src = await video.get_attribute("src")
-        #     thumb = await video.get_attribute("poster")
-        #     if video_src and "scontent" in video_src:
-        #         medias.append({
-        #             "type": "video",
-        #             "download_url": video_src,
-        #             "thumb": thumb if thumb else video_src
-        #         })
-
         result = {
             "error": False,
             "shortcode": "unknown",
@@ -180,6 +166,7 @@ async def get_video(query, post_url):
             }
         ]
     }
+from .proxy_route import get_proxy_config
 
 async def get_facebook_video(post_url, proxy, request):
     ydl_opts = {
@@ -192,17 +179,32 @@ async def get_facebook_video(post_url, proxy, request):
         "socket_timeout": 30,
         "retries": 2,
     }
-    try:
-        loop = asyncio.get_running_loop()
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = await loop.run_in_executor(None, lambda: ydl.extract_info(post_url, download=False))
-        return await get_video(info, post_url)
-    except yt_dlp.utils.DownloadError as e:
-        error_message = str(e)
-        if "This video is only available for registered users." in error_message:
-            return await scrape_facebook_album_json(post_url, request)
 
+    proxy_config = await get_proxy_config()
+    if proxy_config:
+        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+        ydl_opts['proxy'] = proxy_url
 
-    except Exception as e:
-        print(f"Error: {e}")
-        return {"error": True, "message": f"Invalid response from the server: {e}"}
+    loop = asyncio.get_running_loop()
+
+    for attempt in range(3):  # 3 martagacha urinish
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = await loop.run_in_executor(None, lambda: ydl.extract_info(post_url, download=False))
+            return await get_video(info, post_url)
+        except yt_dlp.utils.DownloadError as e:
+            error_message = str(e)
+            if "There is no video in this post" or "This video is only available for registered users" in error_message:
+                return await scrape_facebook_album_json(post_url, request)
+            
+            error_message = str(e)
+            print(f"[Attempt {attempt + 1}] DownloadError: {error_message}")
+            
+            
+            if attempt == 2:  
+                return {"error": True, "message": f"Download failed after 3 attempts: {error_message}"}
+        
+        except Exception as e:
+            print(f"[Attempt {attempt + 1}] Unexpected error: {e}")
+            if attempt == 2:
+                return {"error": True, "message": f"Invalid response from the server: {e}"}
