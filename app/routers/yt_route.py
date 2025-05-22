@@ -55,9 +55,13 @@ async def stream_youtube_video(id: str):
     original_url = redis_client.get(id)
     if not original_url:
         raise HTTPException(status_code=404, detail="Video not found or expired.")
+    
+    proxy_config = await get_proxy_config()
+    if proxy_config:
+        proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
 
     original_url = original_url.decode("utf-8")  
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=None, proxy=proxy) as client:
         response = await client.get(original_url, timeout=None)
         return StreamingResponse(
             content=response.aiter_bytes(),
