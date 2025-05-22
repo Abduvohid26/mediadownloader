@@ -76,13 +76,28 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
             raise ValueError("No URL found in video info")
 
         quality = info.get("format", "unknown").split(' ')[-1].strip("()")
-
         medias: List[Dict] = [{
             "quality": quality,
             "type": "video",
             "ext": "mp4",
             "url": main_url
         }]
+        try:
+            main_url = info.get("url")
+            if main_url:
+                quality = info.get("format", "unknown").split(' ')[-1].strip("()")
+                medias.append({
+                    "quality": quality,
+                    "type": "video",
+                    "ext": "mp4",
+                    "url": main_url
+                })
+        except Exception as e:
+            pass
+
+
+
+
 
         video_audio_formats = await get_video_and_audio_formats(info.get("formats", []))
 

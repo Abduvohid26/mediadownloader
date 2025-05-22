@@ -48,6 +48,8 @@ COPY ./requirements.txt .
 RUN pip install --upgrade pip setuptools wheel
 RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir playwright && playwright install --with-deps
+RUN pip install -U yt-dlp
+
 
 COPY ./entrypoint.sh .
 RUN sed -i 's/\r$//g' /media_service/entrypoint.sh
