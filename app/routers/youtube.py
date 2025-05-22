@@ -67,10 +67,6 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
     YouTube video ma'lumotlarini strukturali formatga keltirib, xatoliklarni loglaydi.
     """
     try:
-        token = os.urandom(16).hex() if proxy_url else None
-        if token and proxy_url:
-            redis_client.set(token, proxy_url, ex=300)
-
         main_url = info.get("url")
         if not main_url:
             raise ValueError("No URL found in video info")
@@ -119,7 +115,6 @@ async def get_video(info: Dict, url: str, proxy_url: Optional[str] = None) -> Di
             "title": info.get("title", "Unknown Title"),
             "thumbnail": thumbnail,
             "duration": info.get("duration", 0),
-            "token": token,
             "medias": medias
         }
 

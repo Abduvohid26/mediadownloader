@@ -5,6 +5,7 @@ from schema.schema import YtSchema
 from .youtube import get_yt_data
 from .cashe import redis_client
 from urllib.parse import urlparse
+from .proxy_route import get_proxy_config
 import uuid
 import httpx
 
@@ -70,6 +71,9 @@ async def download_file(id: str):
     url = _dataurl.decode("utf-8")
     if not url:
         raise HTTPException(status_code=404, detail="Link not found or expired")
+    proxy_config = await get_proxy_config()
+    if proxy_config:
+        proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
 
     if not url.startswith(('http://', 'https://')):
         url = 'http://' + url
@@ -78,7 +82,7 @@ async def download_file(id: str):
     if not parsed_url.netloc:
         raise HTTPException(status_code=400, detail="Invalid URL: missing domain")
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=None) as head_client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=None, proxy=proxy) as head_client:
         try:
             head_resp = await head_client.head(url)
             head_resp.raise_for_status()
@@ -89,7 +93,7 @@ async def download_file(id: str):
             raise HTTPException(status_code=500, detail="Internal server error")
 
     async def iterfile():
-        async with httpx.AsyncClient(follow_redirects=True, timeout=None) as stream_client:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=None, proxy=proxy) as stream_client:
             async with stream_client.stream("GET", url) as response:
                 if response.status_code != 200:
                     raise HTTPException(status_code=404, detail="Cannot stream file")
