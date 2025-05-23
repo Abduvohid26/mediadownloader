@@ -295,9 +295,9 @@ async def download_instagram_media(url, proxy_config, db, request):
                         'quiet': True,
                         'extract_flat': False,
                     }
-                    # if proxy_config:
-                    #     proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-                    #     options['proxy'] = proxy_url
+                    if proxy_config:
+                        proxy_url = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+                        options['proxy'] = proxy_url
                     with yt_dlp.YoutubeDL(options) as ydl:
                         return ydl.extract_info(url, download=False)
                 return await loop.run_in_executor(None, sync_extract)
