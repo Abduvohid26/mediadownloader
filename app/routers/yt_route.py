@@ -29,7 +29,6 @@ async def yt_media(yt_url: str):
                 else:
                     media["url"] = f"https://videoyukla.uz/medias/youtube?id={generated_uuid}"
                     # media["url"] = f"http://localhost:8000/medias/youtube?id={generated_uuid}"
-
         return data
     except Exception as e:
         print(f"Xatolik Yuz Berdi: {e}")
@@ -42,6 +41,17 @@ async def yt_media_service(yt_url: YtSchema = Form(...)):
         data = await get_yt_data(url=yt_url.url.strip())
         if not data:
             return {"status": "error", "message": "Invalid response from the server."}
+        if data.get("error") == False:
+            medias = data.get("medias", [])
+            for media in medias:
+                generated_uuid = str(uuid.uuid4())
+                redis_client.set(generated_uuid, media["url"], 3600)
+                if media["url"].startswith("https://manifest"):
+                    media["url"] = f"https://videoyukla.uz/medias/youtube/m3u8?id={generated_uuid}"
+                    # media["url"] = f"http://localhost:8000/medias/youtube/m3u8?id={generated_uuid}"
+                else:
+                    media["url"] = f"https://videoyukla.uz/medias/youtube?id={generated_uuid}"
+                    # media["url"] = f"http://localhost:8000/medias/youtube?id={generated_uuid}"
         return data
     except Exception as e:
         print(f"Xatolik Yuz Berdi: {e}")
