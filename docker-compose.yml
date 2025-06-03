@@ -20,6 +20,8 @@ services:
     volumes:
       - ./app/static:/media_service/static
       - ./app/media:/media_service/media
+      - ./.media-service-files:/media-service-files
+
 
   db: 
     image: postgres:15

@@ -29,6 +29,7 @@ from routers.face_route import face
 from routers.yt_search.test_route import test_route
 from routers.yt_search.search_route import search_youtube
 from routers.shazam_.shazam_route import shazam_router
+from routers.track.route import track_router
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import httpx
@@ -56,7 +57,7 @@ app.add_middleware(
 )
 
 app.state.restart_lock = asyncio.Lock()
-# app.include_router(checker_router)
+app.include_router(track_router)
 app.include_router(test_route)
 app.include_router(insta_router)
 app.include_router(proxies)
