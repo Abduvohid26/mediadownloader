@@ -69,7 +69,7 @@ app.include_router(face)
 app.include_router(shazam_router)
 app.include_router(search_youtube)
 
-MAX_PAGES = 4
+MAX_PAGES = 5
 
 
 # DB sessiyasini olish
@@ -205,10 +205,10 @@ async def startup():
              'username': proxy_config['username'],
              'password': proxy_config['password']
          }
-    browser_proxy = await playwright.chromium.launch(**new_args)
-    context_proxy = await browser_proxy.new_context()
-    app.state.browser = browser_proxy
-    app.state.context = context_proxy
+    # browser_proxy = await playwright.chromium.launch(**new_args)
+    # context_proxy = await browser_proxy.new_context()
+    # app.state.browser = browser_proxy
+    # app.state.context = context_proxy
 
     # browser_face = await playwright.chromium.launch(**common_args)
     # context_face = await browser_face.new_context()
@@ -268,14 +268,14 @@ async def startup():
     # Sahifalarni yaratish
     # Sahifalarni yaratish
     await add_initial_page(context_noproxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
-    await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
+    # await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
     # await add_initial_page(context_proxy, "https://tiktokio.com", app.state.page_pool2, "Snaptik")
     # await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook", face_login=True)
 
 
     # Page pool tasklari
     app.state.add_page_task = asyncio.create_task(add_page_loop(context_noproxy, app.state.page_pool, app))  # 🛠 TO‘G‘RILANDI
-    app.state.add_page_task_snaptik = asyncio.create_task(add_page_loop_snaptik(context_proxy, app.state.page_pool2, app))
+    # app.state.add_page_task_snaptik = asyncio.create_task(add_page_loop_snaptik(context_proxy, app.state.page_pool2, app))
     # app.state.add_page_task_face = asyncio.create_task(add_page_loop_facebook(context_face, app.state.page_pool3, app))
 
 
@@ -293,16 +293,16 @@ async def startup():
     ))
 
     # snaptik uchun context_proxy
-    asyncio.create_task(restart_browser_loop_generic(
-        context_key="context",
-        browser_key="browser",
-        page_pool_key="page_pool2",
-        add_task_key="add_page_task_snaptik",
-        add_page_func=add_page_loop_snaptik,
-        # urls=["https://tiktokio.com"],
-        urls=["https://snaptik.app"],
-        interval=10 * 60
-    ))
+    # asyncio.create_task(restart_browser_loop_generic(
+    #     context_key="context",
+    #     browser_key="browser",
+    #     page_pool_key="page_pool2",
+    #     add_task_key="add_page_task_snaptik",
+    #     add_page_func=add_page_loop_snaptik,
+    #     # urls=["https://tiktokio.com"],
+    #     urls=["https://snaptik.app"],
+    #     interval=10 * 60
+    # ))
 
     # asyncio.create_task(restart_browser_loop_generic(
     #     context_key="context_face",
@@ -374,24 +374,24 @@ async def add_page_loop(context, page_pool, app):
                         pass
 
 
-async def add_page_loop_snaptik(context, page_pool, app):
-    while True:
-        await asyncio.sleep(0.5)
-        if page_pool.qsize() < MAX_PAGES:
-            async with app.state.restart_lock:
-                try:
-                    page = await context.new_page()
-                    # await page.goto("https://tiktokio.com", wait_until="load", timeout=10000)
-                    await page.goto("https://snaptik.app", wait_until="load", timeout=10000)
-                    await page_pool.put(page)
-                    print("✅ snaptik sahifa qo'shildi")
-                except Exception as e:
+# async def add_page_loop_snaptik(context, page_pool, app):
+#     while True:
+#         await asyncio.sleep(0.5)
+#         if page_pool.qsize() < MAX_PAGES:
+#             async with app.state.restart_lock:
+#                 try:
+#                     page = await context.new_page()
+#                     # await page.goto("https://tiktokio.com", wait_until="load", timeout=10000)
+#                     await page.goto("https://snaptik.app", wait_until="load", timeout=10000)
+#                     await page_pool.put(page)
+#                     print("✅ snaptik sahifa qo'shildi")
+#                 except Exception as e:
                     
-                    print(f"⚠️ snaptik Page yaratishda xato !: {e}")
-                    try:
-                        await page.close()
-                    except:
-                        pass
+#                     print(f"⚠️ snaptik Page yaratishda xato !: {e}")
+#                     try:
+#                         await page.close()
+#                     except:
+#                         pass
 
 # async def add_page_loop_facebook(context, page_pool, app):
 #     while True:

@@ -19,48 +19,47 @@ tk_router = APIRouter()
 
 @tk_router.get("/tiktok/media/")
 async def tk_media(tk_url: str, request: Request):
-    # try:
-    #     async with httpx.AsyncClient(follow_redirects=True) as client:
-    #         response = await client.post("https://downloader.bot/api/tiktok/info", json={"url": tk_url})
-    #         data = response.json()
-    #         return await serializer_data(data, tk_url)
-    # except Exception as e:
-    #     print("Xatolik Yuz Berdi: ", e)
-    #     return {"status": "error", "message": "Invalid response from the server."}
-
-    start_time = time.time() 
     try:
-        data = await download_from_snaptik(tk_url.strip(), request)
-        if not data:
-            return {"status": "error", "message": "Invalid response from the server."}
-        print(time.time() - start_time, "SPEND TIME")
-        return data
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.post("https://downloader.bot/api/tiktok/info", json={"url": tk_url})
+            data = response.json()
+            return await serializer_data(data, tk_url)
     except Exception as e:
-        print(f"Xatolik Yuz Berdi: {e}")
+        print("Xatolik Yuz Berdi: ", e)
         return {"status": "error", "message": "Invalid response from the server."}
+
+    # start_time = time.time() 
+    # try:
+    #     data = await download_from_snaptik(tk_url.strip(), request)
+    #     if not data:
+    #         return {"status": "error", "message": "Invalid response from the server."}
+    #     print(time.time() - start_time, "SPEND TIME")
+    #     return data
+    # except Exception as e:
+    #     print(f"Xatolik Yuz Berdi: {e}")
+    #     return {"status": "error", "message": "Invalid response from the server."}
 
 
 
 @tk_router.post("/tiktok/media/service/")
 async def tk_media_service(request: Request, url: TkSchema = Form(...)):
-    # try:
-    #     async with httpx.AsyncClient(follow_redirects=True) as client:
-    #         response = await client.post("https://downloader.bot/api/tiktok/info", json={"url": url.url.strip()})
-    #         data = response.json()
-    #         await asyncio.sleep(3.5)
-    #         print(data)
-    #         return await serializer_data(data, url)
-    # except Exception as e:
-    #     print("Xatolik Yuz Berdi: ", e)
-    #     return {"status": "error", "message": "Invalid response from the server."}
     try:
-        data = await download_from_snaptik(url.url.strip(), request)
-        if not data:
-            return {"status": "error", "message": "Invalid response from the server."}
-        return data
-    except Exception as e:  
-        print(f"Xatolik Yuz Berdi: {e}")
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.post("https://downloader.bot/api/tiktok/info", json={"url": url.url.strip()})
+            data = response.json()
+            print(data)
+            return await serializer_data(data, url)
+    except Exception as e:
+        print("Xatolik Yuz Berdi: ", e)
         return {"status": "error", "message": "Invalid response from the server."}
+    # try:
+    #     data = await download_from_snaptik(url.url.strip(), request)
+    #     if not data:
+    #         return {"status": "error", "message": "Invalid response from the server."}
+    #     return data
+    # except Exception as e:  
+    #     print(f"Xatolik Yuz Berdi: {e}")
+    #     return {"status": "error", "message": "Invalid response from the server."}
 
 
 
