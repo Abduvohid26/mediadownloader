@@ -210,10 +210,10 @@ async def startup():
     app.state.browser = browser_proxy
     app.state.context = context_proxy
 
-    browser_face = await playwright.chromium.launch(**common_args)
-    context_face = await browser_face.new_context()
-    app.state.browser_face = browser_face
-    app.state.context_face = context_face
+    # browser_face = await playwright.chromium.launch(**common_args)
+    # context_face = await browser_face.new_context()
+    # app.state.browser_face = browser_face
+    # app.state.context_face = context_face
 
     browser_extra = await playwright.chromium.launch(**common_args)
     extra_context = await browser_extra.new_context()
@@ -270,13 +270,13 @@ async def startup():
     await add_initial_page(context_noproxy, "https://sssinstagram.com/ru/story-saver", app.state.page_pool, "SSSInstagram")
     await add_initial_page(context_proxy, "https://snaptik.app", app.state.page_pool2, "Snaptik")
     # await add_initial_page(context_proxy, "https://tiktokio.com", app.state.page_pool2, "Snaptik")
-    await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook", face_login=True)
+    # await add_initial_page(context_face, "https://www.facebook.com", app.state.page_pool3, "Facebook", face_login=True)
 
 
     # Page pool tasklari
     app.state.add_page_task = asyncio.create_task(add_page_loop(context_noproxy, app.state.page_pool, app))  # 🛠 TO‘G‘RILANDI
     app.state.add_page_task_snaptik = asyncio.create_task(add_page_loop_snaptik(context_proxy, app.state.page_pool2, app))
-    app.state.add_page_task_face = asyncio.create_task(add_page_loop_facebook(context_face, app.state.page_pool3, app))
+    # app.state.add_page_task_face = asyncio.create_task(add_page_loop_facebook(context_face, app.state.page_pool3, app))
 
 
 
@@ -304,15 +304,15 @@ async def startup():
         interval=10 * 60
     ))
 
-    asyncio.create_task(restart_browser_loop_generic(
-        context_key="context_face",
-        browser_key="browser_face",
-        page_pool_key="page_pool3",
-        add_task_key="add_page_task_face",
-        add_page_func=add_page_loop_facebook,
-        urls=["https://facebook.com"],
-        interval=20 * 30
-    ))
+    # asyncio.create_task(restart_browser_loop_generic(
+    #     context_key="context_face",
+    #     browser_key="browser_face",
+    #     page_pool_key="page_pool3",
+    #     add_task_key="add_page_task_face",
+    #     add_page_func=add_page_loop_facebook,
+    #     urls=["https://facebook.com"],
+    #     interval=20 * 30
+    # ))
 
 
 
@@ -393,23 +393,23 @@ async def add_page_loop_snaptik(context, page_pool, app):
                     except:
                         pass
 
-async def add_page_loop_facebook(context, page_pool, app):
-    while True:
-        await asyncio.sleep(0.5)
-        if page_pool.qsize() < MAX_PAGES:
-            async with app.state.restart_lock:
-                try:
-                    page = await context.new_page()
-                    await page.goto("https://facebook.com", wait_until="load", timeout=10000)
-                    await page_pool.put(page)
-                    print("✅ facebook sahifa qo'shildi")
-                except Exception as e:
+# async def add_page_loop_facebook(context, page_pool, app):
+#     while True:
+#         await asyncio.sleep(0.5)
+#         if page_pool.qsize() < MAX_PAGES:
+#             async with app.state.restart_lock:
+#                 try:
+#                     page = await context.new_page()
+#                     await page.goto("https://facebook.com", wait_until="load", timeout=10000)
+#                     await page_pool.put(page)
+#                     print("✅ facebook sahifa qo'shildi")
+#                 except Exception as e:
 
-                    print(f"⚠️ facebook Page yaratishda xato !: {e}")
-                    try:
-                        await page.close()
-                    except:
-                        pass
+#                     print(f"⚠️ facebook Page yaratishda xato !: {e}")
+#                     try:
+#                         await page.close()
+#                     except:
+#                         pass
 
 from playwright.async_api import async_playwright
 import asyncio

@@ -10,12 +10,13 @@ face = APIRouter()
 
 @face.get("/facebook/media/")
 async def face_media(url: str, request: Request):
-    try:
-        data = await  get_facebook_video(post_url=url.strip(), proxy=None, request=request)
-        return data
-    except Exception as e:
-        print(e)
-        return {"status": "error", "message": "Invalid response from the server."}
+    return {"success": False, "message": "Admin with connect bro"}
+    # try:
+    #     data = await  get_facebook_video(post_url=url.strip(), proxy=None, request=request)
+    #     return data
+    # except Exception as e:
+    #     print(e)
+    #     return {"status": "error", "message": "Invalid response from the server."}
 
 
 
