@@ -16,7 +16,8 @@ from fastapi import UploadFile
 
 
 async def track_recognize_by_multipart_reader(reader: UploadFile, is_youtube_audio: bool = False):
-    temp_file_path = os.path.join("/media-service-files", secrets.token_hex(8) + "_" + reader.filename)
+    safe_filename = os.path.basename(reader.filename)
+    temp_file_path = os.path.join("/media-service-files", f"{secrets.token_hex(8)}_{safe_filename}")
     start_time = time.time()
 
     # Faylni saqlab olish

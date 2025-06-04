@@ -23,7 +23,7 @@ async def recognize_youtube_audio(file_path: str):
         with sr.AudioFile(str(wav_path)) as source:
             audio_data = recognizer.record(source, duration=5)
         text = recognizer.recognize_google(audio_data, language="uz")
-        print("AUDIO KETTI")
+        print("AUDIO KETTI", text)
         return {
         "id": None,
         "title": text,
@@ -38,4 +38,5 @@ async def recognize_youtube_audio(file_path: str):
     finally:
         if wav_path.exists():
             wav_path.unlink(missing_ok=True)
-        await pathlib.Path(file_path).unlink(missing_ok=True)
+        if Path(file_path).exists():
+            Path(file_path).unlink(missing_ok=True)

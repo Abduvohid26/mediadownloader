@@ -20,7 +20,6 @@ def _track_recognize_deserialize(track):
     "thumbnail_url": track["images"].get("coverart", track["images"].get("coverarthq", None)) if "images" in track else None
   }
 
-
 async def track_backend_songrec_recognize(file_path: str, max_retries: int = 3):
     if not os.path.exists(file_path):
         print(f"[XATO] Fayl topilmadi: {file_path}")
@@ -31,28 +30,31 @@ async def track_backend_songrec_recognize(file_path: str, max_retries: int = 3):
         return None
 
     retry_count = 0
-    while retry_count < max_retries:
-        proxy = None
-        proxy_config = await get_proxy_config()
-        if proxy_config:
-            proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
-        shazam_wrapper = ShazamWrapper()
-        await shazam_wrapper.setup(proxy=proxy)
-        try:
-            result = await shazam_wrapper.recognize(file_path)
-            if not result or "track" not in result:
-                print("[XATO] Trek topilmadi.")
-                return None
-            print("SHAZAM KETTI")
-            return _track_recognize_deserialize(result["track"])
-        except Exception as e:
-            print(f"[XATO IN SHAZAM] {type(e).__name__}: {e}")
-            retry_count += 1
-            await asyncio.sleep(0.1)
-        finally:
-            await shazam_wrapper.close()
-            pathlib.Path(file_path).unlink(missing_ok=True)
+    try:
+        while retry_count < max_retries:
+            proxy = None
+            proxy_config = await get_proxy_config()
+            if proxy_config:
+                proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+
+            shazam_wrapper = ShazamWrapper()
+            await shazam_wrapper.setup(proxy=proxy)
+
+            try:
+                result = await shazam_wrapper.recognize(file_path)
+                if not result or "track" not in result:
+                    print("[XATO] Trek topilmadi.")
+                    return None
+                print("SHAZAM KETTI")
+                return _track_recognize_deserialize(result["track"])
+            except Exception as e:
+                print(f"[XATO IN SHAZAM] {type(e).__name__}: {e}")
+                retry_count += 1
+                await asyncio.sleep(0.1)
+            finally:
+                await shazam_wrapper.close()
+    finally:
+        pathlib.Path(file_path).unlink(missing_ok=True)
 
     print("[XATO] Maksimal urinishlar soni oshib ketdi.")
     return None
-
