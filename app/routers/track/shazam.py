@@ -54,7 +54,7 @@ async def track_backend_songrec_recognize(file_path: str, max_retries: int = 3):
             finally:
                 await shazam_wrapper.close()
     finally:
-        pathlib.Path(file_path).unlink(missing_ok=True)
+        pass
 
     print("[XATO] Maksimal urinishlar soni oshib ketdi.")
     return None

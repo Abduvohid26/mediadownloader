@@ -38,5 +38,3 @@ async def recognize_youtube_audio(file_path: str):
     finally:
         if wav_path.exists():
             wav_path.unlink(missing_ok=True)
-        if Path(file_path).exists():
-            Path(file_path).unlink(missing_ok=True)
