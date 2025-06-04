@@ -3,6 +3,7 @@ import asyncio
 from ..proxy_route import get_proxy_config
 import logging
 from .model import ShazamWrapper
+import pathlib
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -42,13 +43,15 @@ async def track_backend_songrec_recognize(file_path: str, max_retries: int = 3):
             if not result or "track" not in result:
                 print("[XATO] Trek topilmadi.")
                 return None
+            print("SHAZAM KETTI")
             return _track_recognize_deserialize(result["track"])
         except Exception as e:
-            print(f"[XATO] {type(e).__name__}: {e}")
+            print(f"[XATO IN SHAZAM] {type(e).__name__}: {e}")
             retry_count += 1
             await asyncio.sleep(0.1)
         finally:
             await shazam_wrapper.close()
+            pathlib.Path(file_path).unlink(missing_ok=True)
 
     print("[XATO] Maksimal urinishlar soni oshib ketdi.")
     return None

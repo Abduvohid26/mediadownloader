@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path    
 from pydub import AudioSegment
 import speech_recognition as sr
+import pathlib
 
 
 
@@ -22,7 +23,7 @@ async def recognize_youtube_audio(file_path: str):
         with sr.AudioFile(str(wav_path)) as source:
             audio_data = recognizer.record(source, duration=5)
         text = recognizer.recognize_google(audio_data, language="uz")
-        print(text)
+        print("AUDIO KETTI")
         return {
         "id": None,
         "title": text,
@@ -31,9 +32,10 @@ async def recognize_youtube_audio(file_path: str):
         "thumbnail_url": None
     }
     except Exception as e:
-        print(str(e))
+        print("ERROR IN TYT AUDIO:", e)
         return None
 
     finally:
         if wav_path.exists():
             wav_path.unlink(missing_ok=True)
+        await pathlib.Path(file_path).unlink(missing_ok=True)
