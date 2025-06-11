@@ -88,7 +88,7 @@ webdriver-manager==4.0.2
 websocket-client==1.8.0
 wsproto==1.2.0
 yarl==1.18.3
-yt-dlp==2025.3.31
+yt-dlp==2025.6.9
 isodate==0.7.2
 pydub
 SpeechRecognition
