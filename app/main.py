@@ -31,6 +31,7 @@ from routers.yt_search.search_route import search_youtube
 from routers.shazam_.shazam_route import shazam_router
 from routers.track.route import track_router
 from routers.platforms.route import platform_route
+from routers.new_track.route import new_track_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -61,7 +62,7 @@ app.add_middleware(
     allow_headers=["*"],           
 )
 app.state.restart_lock = asyncio.Lock()
-
+app.include_router(new_track_router)
 app.include_router(platform_route)
 app.include_router(track_router)
 app.include_router(test_route)
