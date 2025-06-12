@@ -30,7 +30,10 @@ from routers.yt_search.test_route import test_route
 from routers.yt_search.search_route import search_youtube
 from routers.shazam_.shazam_route import shazam_router
 from routers.track.route import track_router
+from routers.platforms.route import platform_route
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 import httpx
 import httpx
 
@@ -39,6 +42,8 @@ EMAIL_PASSWORD = "20042629ab"
 
 app = FastAPI()
 
+
+app.mount("/media", StaticFiles(directory="media"), name="media")
 
 origins = [
     "http://localhost:3000",   # agar React localda bo‘lsa
@@ -55,8 +60,9 @@ app.add_middleware(
     allow_methods=["*"],            # GET, POST, PUT, DELETE hammasi
     allow_headers=["*"],           
 )
-
 app.state.restart_lock = asyncio.Lock()
+
+app.include_router(platform_route)
 app.include_router(track_router)
 app.include_router(test_route)
 app.include_router(insta_router)
@@ -69,7 +75,7 @@ app.include_router(face)
 app.include_router(shazam_router)
 app.include_router(search_youtube)
 
-MAX_PAGES = 4
+MAX_PAGES = 1
 
 
 # DB sessiyasini olish
@@ -91,13 +97,13 @@ async def generate_download(original_url: str, db: AsyncSession = Depends(get_db
     # return {"download_url": f"http://localhost:8000/download?id={file_id}"}
     return {"download_url": f"https://videoyukla.uz/download?id={file_id}"}
 
-import os
-@app.get("/get/image")
-async def get_image():
-    file_path = "screenshot.png"
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-    return {"error": "File not found"}
+# import os
+# @app.get("/get/image")
+# async def get_image():
+#     file_path = "screenshot.png"
+#     if os.path.exists(file_path):
+#         return FileResponse(file_path)
+#     return {"error": "File not found"}
 
 
 @app.get("/download", include_in_schema=False)

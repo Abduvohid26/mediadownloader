@@ -43,3 +43,17 @@ class Download(Base):
 
     def __repr__(self):
         return f"Download(original_url={self.original_url}, created_at={self.created_at})"
+
+
+class Platform(Base):
+    __tablename__ = "platforms"
+
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    name = Column(Text)
+    base_url = Column(Text)
+    extra_link = Column(Text)
+    avatar = Column(Text)
+    hidden = Column(Boolean, default=False)
+
+    def __repr__(self):
+        return f"Platform(name={self.name}, link={self.hidden})"
