@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     chromium-driver \
-    chromium
+    chromium 
 
 RUN apt update && apt install -y ffmpeg
 
@@ -49,6 +49,7 @@ RUN pip install --upgrade pip setuptools wheel
 RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir playwright && playwright install --with-deps
 RUN pip install -U yt-dlp
+RUN apt install proxychains4 -y
 
 
 COPY ./entrypoint.sh .
@@ -57,8 +58,12 @@ RUN chmod +x /media_service/entrypoint.sh
 
 COPY . .
 
+
 RUN chown -R abduvohid:abduvohid /media_service
 
 USER abduvohid
+
+# COPY bin/songrec /usr/bin
+# RUN chmod +x /usr/bin/songrec
 
 ENTRYPOINT ["sh", "/media_service/entrypoint.sh"]

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from .backend_track_search import track_backend_yt_dlp_search
+from .backend_voice_track_search import track_recognize_by_multipart_reader
 from ..proxy_route import get_proxy_config
 
 new_track_router = APIRouter()
@@ -16,7 +17,15 @@ async def track_search(query: str, offset: int = 0, limit: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@new_track_router.post("/track/voice/search")
+async def track_voice_search(file: UploadFile = File(...), offset: int = 0, limit: int = 10):
+    try:
+        return await track_recognize_by_multipart_reader(file)
+    except Exception as e:
+        print("Xato:", e)
+        return {"error": True, "message": "Error response from the server"}
 
+    
 
 
 
