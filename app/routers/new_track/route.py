@@ -25,8 +25,10 @@ async def track_voice_search(file: UploadFile = File(...), offset: int = 0, limi
         if proxy_config:
             proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
         data =  await track_recognize_by_multipart_reader(file)
+        print(data, "Data")
         if data:
             search_results = await track_backend_yt_dlp_search(f"{data['performer']} {data['title']}", int(offset), int(limit), proxy)
+            print(search_results, "search_results")
             if search_results:
                 return {"search_results": search_results}
             else:
