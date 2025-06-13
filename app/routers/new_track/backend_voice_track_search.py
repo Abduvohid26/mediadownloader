@@ -59,7 +59,7 @@ async def track_recognize_by_multipart_reader(reader: UploadFile):
         result = await get_by_file_from_upload(output_filename)
         if result:
             return await track_backend_yt_dlp_search(f'{result.get("performer", None)} {result.get("title", None)}', 0, 10)
-        return None
+        return {"error": True, "message": "Error response from the server"}
 
     finally:
         for file in [input_filename, output_filename]:

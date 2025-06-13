@@ -2,6 +2,11 @@
 
 import asyncio
 import json
+from .track_download import track_backend_yt_dlp_download
+from ..proxy_route import proxy_off
+
+TRACK_DOWNLOAD_MAX_ATTEMPTS = 3
+
 
 def _track_recognize_deserialize(track):
   return {
@@ -27,6 +32,33 @@ async def track_backend_songrec_recognize(file_path: str):
   recognize_result = json.loads(songrec_proc_stdout)["track"]
   return _track_recognize_deserialize(recognize_result)
 
+
+
+async def track_download(
+  id: str,
+  proxy: str,
+) -> str:
+  download_attempts = 0
+  downloaded_file_path = ""
+
+  try:
+    while download_attempts < TRACK_DOWNLOAD_MAX_ATTEMPTS:
+      print(f"Attemp {download_attempts}")
+      try:
+        target_proxy = proxy
+        downloaded_file_path = await track_backend_yt_dlp_download(id, proxy=target_proxy)
+        break
+      except Exception as ex:
+        print(str(ex))
+      finally:
+        download_attempts += 1
+
+    if not downloaded_file_path:
+      return {"error": True, "message": "Error response from the server"}
+
+    return {"url": downloaded_file_path}
+  except Exception as e:
+    print(str(e))
 
 # async def track_backend_songrec_recognize(file_path: str):
 #     try:

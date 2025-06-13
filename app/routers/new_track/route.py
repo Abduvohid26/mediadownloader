@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File
 from .backend_track_search import track_backend_yt_dlp_search
 from .backend_voice_track_search import track_recognize_by_multipart_reader
 from ..proxy_route import get_proxy_config
+from .track import track_download
 
 new_track_router = APIRouter()
 
@@ -14,7 +15,7 @@ async def track_search(query: str, offset: int = 0, limit: int = 10):
         search_results = await track_backend_yt_dlp_search(query, int(offset), int(limit), proxy)
         return {"search_results": search_results}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"error": True, "message": "Error response from the server"}
 
 
 @new_track_router.post("/track/voice/search")
@@ -26,6 +27,17 @@ async def track_voice_search(file: UploadFile = File(...), offset: int = 0, limi
         return {"error": True, "message": "Error response from the server"}
 
     
+@new_track_router.get("/track/download/{id}")
+async def track_download_handler(id: str):
+    try:
+        proxy_config , proxy = await get_proxy_config(), None
+        if proxy_config:
+            proxy = f"http://{proxy_config['username']}:{proxy_config['password']}@{proxy_config['server'].replace('http://', '')}"
+        return await track_download(id, proxy)
+    except Exception as e:
+        return {"error": True, "message": "Error response from the server"}
+
+
 
 
 
