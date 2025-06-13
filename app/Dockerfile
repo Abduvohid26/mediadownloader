@@ -36,7 +36,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     chromium-driver \
-    chromium 
+    chromium \
+    libpulse-dev \
+    libasound2
 
 RUN apt update && apt install -y ffmpeg
 
@@ -59,11 +61,15 @@ RUN chmod +x /media_service/entrypoint.sh
 COPY . .
 
 
+COPY bin/songrec /usr/bin
+RUN chmod +x /usr/bin/songrec
+
+
 RUN chown -R abduvohid:abduvohid /media_service
 
 USER abduvohid
 
-# COPY bin/songrec /usr/bin
-# RUN chmod +x /usr/bin/songrec
+
+
 
 ENTRYPOINT ["sh", "/media_service/entrypoint.sh"]
