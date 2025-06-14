@@ -41,7 +41,7 @@ async def tk_media(tk_url: str, request: Request):
 
 
 
-@tk_router.post("/tiktok/media/service/")
+@tk_router.post("/tiktok/media/service/", include_in_schema=False)
 async def tk_media_service(request: Request, url: TkSchema = Form(...)):
     # try:
     #     async with httpx.AsyncClient(follow_redirects=True) as client:

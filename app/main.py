@@ -64,8 +64,8 @@ app.add_middleware(
 app.state.restart_lock = asyncio.Lock()
 app.include_router(new_track_router)
 app.include_router(platform_route)
-app.include_router(track_router)
-app.include_router(test_route)
+# app.include_router(track_router)
+# app.include_router(test_route)
 app.include_router(insta_router)
 app.include_router(proxies)
 app.include_router(yt_router)
@@ -73,8 +73,8 @@ app.include_router(sender)
 app.include_router(check_url)
 app.include_router(tk_router)
 app.include_router(face)
-app.include_router(shazam_router)
-app.include_router(search_youtube)
+# app.include_router(shazam_router)
+# app.include_router(search_youtube)
 
 MAX_PAGES = 4
 
@@ -85,9 +85,9 @@ async def get_db() -> AsyncSession:
     async with SessionLocal() as db:
         yield db
 
-@app.get("/")
-async def read_root():
-    return {"message": "Hello, World!"}
+# @app.get("/")
+# async def read_root():
+#     return {"message": "Hello, World!"}
 
 
 async def generate_download(original_url: str, db: AsyncSession = Depends(get_db)):

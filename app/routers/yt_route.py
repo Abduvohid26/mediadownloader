@@ -70,7 +70,7 @@ async def yt_media_service(
 
 
 
-@yt_router.get("/medias/youtube/m3u8/")
+@yt_router.get("/medias/youtube/m3u8/", include_in_schema=False)
 async def stream_youtube_video(id: str):
     uuid_part = id.rsplit(".", 1)[0]
     original_url = redis_client.get(uuid_part)
