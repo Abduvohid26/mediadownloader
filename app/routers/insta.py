@@ -64,7 +64,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
         title = titles[0] if titles else None
         medias = []
         videos = await page.query_selector_all(".button__download")
-
+        base_url = str(request.base_url).rstrip("/") 
         if videos:
             for video in videos:
                 video_link = await video.get_attribute("href")
@@ -72,8 +72,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
                     media_id = await generate_unique_id()
                     redis_client.set(media_id, video_link, ex=3600)
 
-                    download_url = f"https://videoyukla.uz/download/instagram?id={media_id}"
-                    # download_url = f"https://localhost:8000/download/instagram?id={media_id}"
+                    download_url = f"{base_url}/download/instagram?id={media_id}"
 
 
                     if video_link.endswith((".webp", ".jpg", ".jpeg", ".png")):
@@ -86,8 +85,7 @@ async def get_instagram_direct_links(post_url: str, db, request):
                             thumb_link = await thumb_el.get_attribute("src")
                             thumb_id = await generate_unique_id()
                             redis_client.set(thumb_id, thumb_link, ex=3600)
-                            thumb = f"https://videoyukla.uz/download/instagram?id={thumb_id}"
-                            # thumb = f"https://localhost:8000/download/instagram?id={thumb_id}"
+                            thumb = f"{base_url}/download/instagram?id={thumb_id}"
 
                         else:
                             thumb = None
@@ -333,13 +331,18 @@ async def download_instagram_media(url, proxy_config, db, request):
                     await proxy_off(proxy_ip=proxy_config["server"], action="instagram")
                 retry_count += 1
                 continue
+            elif "Instagram sent an empty media response" in error_msg:
+                return await get_instagram_direct_links(
+                    post_url=url,
+                    db=db,
+                    request=request
+                )
             else:
                 break  # Agar boshqa xatolik bo'lsa, retry qilmaymiz
 
         except yt_dlp.utils.DownloadError as e:
             error_message = str(e)
-
-            if "There is no video in this post" in error_message:
+            if "There is no video in this post" or "Instagram sent an empty media response" in error_message:
                 print("Get media2")
                 return await get_instagram_direct_links(
                     post_url=url,
